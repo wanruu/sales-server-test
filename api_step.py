@@ -1,51 +1,86 @@
 import requests as r
 from swagger import Swagger
+import pydash
 
 
 swagger = Swagger("http://localhost:3000/api-doc-json")
 
 
 class ApiStep:
-    continue_on_error = True
-    expected_status_code = 200
+    __continue_on_error = True
+    __expected_status_code = 200
+    __pre_process_callbacks = []
+    __post_process_callbacks = []
 
     def __init__(self, method, path, path_params={}, query_params={}, headers={}, body={}):
-        self.method = method
-        self.path = path
-        self.path_params = path_params
-        self.query_params = query_params
-        self.headers = headers
-        self.body = body
+        self.__method = method
+        self.__path = path
+        self.__path_params = path_params
+        self.__query_params = query_params
+        self.__headers = headers
+        self.__body = body
+    
+    @property
+    def response(self):
+        return self.__response
 
     def expect(self, status_code):
-        self.expected_status_code = status_code
+        self.__expected_status_code = status_code
+
+    def add_process(self, pre_or_post, callback):
+        if pre_or_post == 'pre':
+            self.__pre_process_callbacks.append(callback)
+        elif pre_or_post == 'post':
+            self.__post_process_callbacks.append(callback)
     
-    def run(self):
-        path = self.path
-        for key, value in self.path_params.items():
+    def add_assertion(self, path, callback):
+        self.__post_process_callbacks.append(lambda: callback(pydash.get(self.__response, path)))
+
+    def run(self, validate_response=True):
+        # pre process
+        for callback in self.__pre_process_callbacks:
+            ret = callback()
+        
+        # send api
+        path = self.__path
+        for key, value in self.__path_params.items():
             path = path.replace('{' + key + '}', value)
         response = r.request(
-            method=self.method, 
+            method=self.__method, 
             url='http://localhost:3000'+path, 
-            params=self.query_params, 
-            headers=self.headers, 
-            data=self.body
+            params=self.__query_params, 
+            headers=self.__headers, 
+            data=self.__body
         )
-        
-        if response.status_code != self.expected_status_code:
-            print(f"Expected status code {self.expected_status_code}, but got {response.status_code}")
-            if not self.continue_on_error:
+        self.__response = {
+            "body": response.json(),
+            "status_code": response.status_code,
+            "headers": response.headers
+        }
+
+        # check response
+        if response.status_code != self.__expected_status_code:
+            print('❌', f"Expected status code {self.__expected_status_code}, but got {response.status_code}")
+            if not self.__continue_on_error:
                 return
         
-        ret, msgs = swagger.check_response(
-            path=self.path, 
-            method=self.method, 
-            status_code=str(self.expected_status_code), 
-            content_type=response.headers['Content-Type'].split(';')[0],
-            response=response.json()
-        )
-        if ret:
-            print('返回数据结构与接口定义一致')
-        else:
-            for msg in msgs:
-                print(msg)
+        if validate_response:
+            ret, msgs = swagger.check_response(
+                path=self.__path, 
+                method=self.__method, 
+                status_code=str(self.__expected_status_code), 
+                content_type=response.headers['Content-Type'].split(';')[0],
+                response=response.json()
+            )
+            if ret:
+                print('✔ 返回数据结构与接口定义一致')
+            else:
+                for msg in msgs:
+                    print('❌', msg)
+                if not self.__continue_on_error:
+                    return
+        
+        # post process
+        for callback in self.__post_process_callbacks:
+            callback()
+
