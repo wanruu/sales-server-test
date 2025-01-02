@@ -1,28 +1,50 @@
-import requests as r
-from swagger import Swagger
+import requests
 import pydash
+from jsonschema import Draft202012Validator
 
 
-swagger = Swagger("http://localhost:3000/api-doc-json")
+swagger_json = requests.get('http://localhost:3000/api-doc-json').json()
 
 
 class ApiStep:
-    __continue_on_error = True
-    __expected_status_code = 200
     __pre_process_callbacks = []
     __post_process_callbacks = []
+    __response = None
+    __url = 'http://localhost:3000'
+    __base_headers = {}
 
-    def __init__(self, method, path, path_params={}, query_params={}, headers={}, body={}):
+    def __init__(self, method, path, path_params={}, query_params={}, headers={}, body={}, code=200):
         self.__method = method
         self.__path = path
         self.__path_params = path_params
         self.__query_params = query_params
-        self.__headers = headers
+        self.__headers = pydash.merge(self.__base_headers, headers)
         self.__body = body
+        self.__expected_status_code = code
     
     @property
     def response(self):
         return self.__response
+
+    @classmethod
+    def update_headers(cls, headers):
+        cls.__base_headers = pydash.merge(cls.__base_headers, headers)
+
+    def get_variable(self, path):
+        paths = path.split('.')
+        obj = {
+            "response": {
+                "body": self.__response.json(),
+                "code": str(self.__response.status_code)
+            },
+            "request": {
+                "body": self.__body,
+                "headers": self.__headers,
+                "path_params": self.__path_params,
+                "query_params": self.__query_params
+            }
+        }
+        return pydash.get(obj, paths)
 
     def expect(self, status_code):
         self.__expected_status_code = status_code
@@ -32,55 +54,56 @@ class ApiStep:
             self.__pre_process_callbacks.append(callback)
         elif pre_or_post == 'post':
             self.__post_process_callbacks.append(callback)
-    
-    def add_assertion(self, path, callback):
-        self.__post_process_callbacks.append(lambda: callback(pydash.get(self.__response, path)))
 
-    def run(self, validate_response=True):
+    def run(self):
         # pre process
         for callback in self.__pre_process_callbacks:
-            ret = callback()
+            ret = callback(self)
         
         # send api
         path = self.__path
         for key, value in self.__path_params.items():
             path = path.replace('{' + key + '}', value)
-        response = r.request(
+        self.__response = requests.request(
             method=self.__method, 
-            url='http://localhost:3000'+path, 
+            url=self.__url + path, 
             params=self.__query_params, 
             headers=self.__headers, 
             data=self.__body
         )
-        self.__response = {
-            "body": response.json(),
-            "status_code": response.status_code,
-            "headers": response.headers
-        }
 
         # check response
-        if response.status_code != self.__expected_status_code:
-            print('❌', f"Expected status code {self.__expected_status_code}, but got {response.status_code}")
-            if not self.__continue_on_error:
-                return
-        
-        if validate_response:
-            ret, msgs = swagger.check_response(
-                path=self.__path, 
-                method=self.__method, 
-                status_code=str(self.__expected_status_code), 
-                content_type=response.headers['Content-Type'].split(';')[0],
-                response=response.json()
-            )
-            if ret:
-                print('✔ 返回数据结构与接口定义一致')
-            else:
-                for msg in msgs:
-                    print('❌', msg)
-                if not self.__continue_on_error:
-                    return
-        
+        self.__validate_response()
+
         # post process
         for callback in self.__post_process_callbacks:
-            callback()
+            callback(self)
 
+    def __validate_response(self):
+        if (self.__response is None):
+            print('❌ 无法获取响应')
+
+        status_code = str(self.__response.status_code)
+        if status_code != str(self.__expected_status_code):
+            print('❌', f"预期状态码：{self.__expected_status_code}，实际状态码：{status_code}.")
+        
+        try:
+            content_type = self.__response.headers['Content-Type'].split(';')[0]
+            content = swagger_json["paths"][self.__path][self.__method]['responses'][str(self.__expected_status_code)]['content'][content_type]
+        except Exception:
+            print('❌', '接口定义中没有找到返回数据的定义')
+            return
+
+        if 'schema' in content:
+            schema = pydash.merge(content['schema'], {"components": swagger_json["components"]})
+            validator = Draft202012Validator(schema)
+        else:
+            print('todo!')
+        
+        errors = validator.iter_errors(self.__response.json())
+        ret = True
+        for error in sorted(errors, key=str):
+            print('❌', error.message)
+            ret = False
+        if ret:
+            print('✔ 返回数据结构与接口定义一致')
