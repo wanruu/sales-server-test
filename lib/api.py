@@ -3,7 +3,7 @@ import pydash
 from jsonschema import Draft202012Validator
 from lib.utils import get_global_variables
 
-swagger_json = requests.get('http://localhost:3000/api-doc-json').json()
+swagger_json = requests.get('http://localhost:4000/api-doc-json').json()
 
 
 class Api:
@@ -12,7 +12,7 @@ class Api:
     # __request = { "method": "", "path": "", "body": {}, "headers": {}, "path_params": {}, "query_params": {} }
     # __response = None
     # __expected_status_code = 200
-    __url = 'http://localhost:3000'
+    __url = 'http://localhost:4000'
     
     __COUNTER = 1
 
@@ -71,7 +71,7 @@ class Api:
             try:
                 callback(self)
             except Exception as e:
-                print('❌', f"前置操作失败：{e}")
+                print('❌', "前置操作失败:", e)
         
         # send api
         response = requests.request(
@@ -95,14 +95,14 @@ class Api:
             try:
                 callback(self)
             except Exception as e:
-                print('❌', f"后置操作失败：{e}")
+                print('❌', "后置操作失败:", e)
 
     def __validate_response(self):
         if (self.__response is None):
             print('❌ 无法获取响应')
 
         if self.__response["code"] != self.__expected_status_code:
-            print('❌', f"预期状态码：{self.__expected_status_code}，实际状态码：{self.__response['code']}.")
+            print('❌', "预期状态码:", self.__expected_status_code, "实际状态码:", self.__response['code'])
 
         try:
             path = self.__request["path"]
@@ -126,7 +126,7 @@ class Api:
         errors = validator.iter_errors(self.__response["body"])
         ret = True
         for error in sorted(errors, key=str):
-            print('❌', f'{error.json_path}校验失败：', error.message)
+            print('❌', f'校验失败({error.json_path}):', error.message)
             ret = False
         if ret:
             print('✔ 返回数据结构与接口定义一致')

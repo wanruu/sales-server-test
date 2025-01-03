@@ -16,4 +16,4 @@ def get_global_variables(path):
 
 def assertion(actual, operator, expected):
     if operator == '==' and actual != expected:
-        print('❌ 断言失败：', actual, operator, expected)
+        print('❌', '断言失败:', actual, operator, expected)
