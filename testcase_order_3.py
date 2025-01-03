@@ -23,7 +23,6 @@ login_user.add_operation('post', lambda cur: set_global_variables("access_token"
 login_user.run()
 login_user_id = login_user.get_variable('response.body.data.id')
 
-
 # 创建order
 order = {
     "type": 0,
@@ -181,8 +180,8 @@ get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response
         {
             "id": cur.get_variable('response.body.data.invoiceItems.[0].id'), # not check
             "product": pydash.merge(
-                create_product.get_variable('response.body.data.invoiceItems.[0].product'),
-                {"quantity": 0, "id": create_product.get_variable('response.body.data.invoiceItems.[0].product.id')},
+                create_order.get_variable('response.body.data.invoiceItems.[0].product'),
+                {"quantity": 0, "id": create_order.get_variable('response.body.data.invoiceItems.[0].product.id')},
             ),
             "weight": None,
             "orderItem": None,
@@ -217,7 +216,6 @@ get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response
     )
 ))
 get_order.run()
-
 
 # 查询所有invoice
 get_all_invoice = Api('get', '/invoices')

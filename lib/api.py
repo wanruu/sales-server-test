@@ -3,7 +3,8 @@ import pydash
 from jsonschema import Draft202012Validator
 from lib.utils import get_global_variables
 
-swagger_json = requests.get('http://localhost:4000/api-doc-json').json()
+url = 'http://localhost:3000'
+swagger_json = requests.get(f'{url}/api-doc-json').json()
 
 
 class Api:
@@ -12,7 +13,6 @@ class Api:
     # __request = { "method": "", "path": "", "body": {}, "headers": {}, "path_params": {}, "query_params": {} }
     # __response = None
     # __expected_status_code = 200
-    __url = 'http://localhost:4000'
     
     __COUNTER = 1
 
@@ -76,7 +76,7 @@ class Api:
         # send api
         response = requests.request(
             method=self.__request["method"], 
-            url=self.__url + path, 
+            url=url + path, 
             params=self.__request["query_params"], 
             headers=self.__request["headers"], 
             json=self.__request["body"]
