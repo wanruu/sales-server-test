@@ -154,8 +154,8 @@ update_order.run()
 # 查询单个partner
 get_partner = Api('get', '/partners/{id}', path_params={"id": create_order.get_variable('response.body.data.partner.id')})
 get_partner.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.name'), '==', create_order.get_variable('request.body.partner.name')))
-get_partner.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.address'), '==', create_order.get_variable('request.body.partner.address')))
-get_partner.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.folder'), '==', ''))
+get_partner.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.folder'), '==', create_order.get_variable('request.body.partner.folder')))
+get_partner.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.address'), '==', ''))
 get_partner.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.phone'), '==', ''))
 get_partner.run()
 
@@ -167,7 +167,7 @@ get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response
         {"phone": "", "folder": "", "id": cur.get_variable('response.body.data.partner.id')}
     )
 ))
-get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.order'), '==', None))  # TODO??
+get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.order'), '==', None))
 get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.number'), '==', create_order.get_variable('request.body.date').replace('-', '') + '0001'))
 get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.type'), '==', create_order.get_variable('request.body.type')))
 get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.amount'), '==', update_order.get_variable('request.body.amount')))
@@ -176,41 +176,40 @@ get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response
 get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.delivered'), '==', update_order.get_variable('request.body.delivered')))
 get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.invoiceItems[0]'), '==', 
     pydash.merge(
-        update_order.get_variable('request.body.invoiceItems.[2]'),
+        update_order.get_variable('request.body.invoiceItems.[0]'),
         {
-            "id": cur.get_variable('response.body.data.invoiceItems.[0].id'), # not check
+            "id": create_order.get_variable('response.body.data.invoiceItems[1].id'),
             "product": pydash.merge(
-                create_order.get_variable('response.body.data.invoiceItems.[0].product'),
-                {"quantity": 0, "id": create_order.get_variable('response.body.data.invoiceItems.[0].product.id')},
+                create_order.get_variable('request.body.invoiceItems[1].product'),
+                {"quantity": 0, "id": create_order.get_variable('response.body.data.invoiceItems[1].product.id')},
             ),
-            "weight": None,
             "orderItem": None,
         },
     )
 ))
 get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.invoiceItems[1]'), '==', 
     pydash.merge(
-        update_order.get_variable('request.body.invoiceItems.[0]'),
+        update_order.get_variable('request.body.invoiceItems.[1]'),
         {
-            "id": create_order.get_variable('response.body.data.invoiceItems[1].id'),
+            "id": create_order.get_variable('response.body.data.invoiceItems[2].id'),
             "product": pydash.merge(
-                create_order.get_variable('request.body.invoiceItems[1].product'),
-                {"quantity": 0, "id": create_order.get_variable('response.body.data.invoiceItems[1].product.id')},
+                update_order.get_variable('request.body.invoiceItems[1].product'),
+                {"quantity": 0, "id": cur.get_variable('response.body.data.invoiceItems[1].product.id')},
             ),
+            "weight": None,
             "orderItem": None,
         },
     )
 ))
 get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.invoiceItems[2]'), '==', 
     pydash.merge(
-        update_order.get_variable('request.body.invoiceItems.[0]'),
+        update_order.get_variable('request.body.invoiceItems.[2]'),
         {
-            "id": create_order.get_variable('response.body.data.invoiceItems[1].id'),
+            "id": cur.get_variable('response.body.data.invoiceItems.[2].id'), # not check
             "product": pydash.merge(
-                create_order.get_variable('request.body.invoiceItems[1].product'),
-                {"quantity": 0, "id": create_order.get_variable('response.body.data.invoiceItems[1].product.id')},
+                create_order.get_variable('request.body.invoiceItems.[0].product'),
+                {"quantity": 0, "id": create_order.get_variable('response.body.data.invoiceItems.[0].product.id')},
             ),
-            "weight": None,
             "orderItem": None,
         },
     )
