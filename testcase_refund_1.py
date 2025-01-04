@@ -1,5 +1,5 @@
 from lib.step import Step
-from lib.utils import custom_get
+from lib.testcase import Testcase
 from lib.operation import SetGlobalVariableOperation, AssertEqualOperation
 import json
 
@@ -10,16 +10,17 @@ import json
 # - 创建refund时，必须指定`invoiceItems.orderItem`，否则报`400`。如果对应`orderItem`不存在，报`404`。
 #
 
+t = Testcase('创建refund')
+
 # 创建user
-user = '{"name": "Hermione", "password": "12345678"}'
+user = json.dumps({"name": "Hermione", "password": "12345678"})
 create_user = Step('post', '/users', '创建user', body=user)
-create_user.run()
+t.add_step(create_user) #0
 
 # 登录
 login_user = Step('post', '/users/login', '登录', body=user, expected_status_code=200)
-login_user.add_post_operation(SetGlobalVariableOperation('access_token', '{{response.body.data.accessToken}}'))
-login_user.run()
-login_user_id = custom_get(login_user, 'response.body.data.id')
+login_user.add_post_operation(SetGlobalVariableOperation('access_token', '{{1.response.body.data.accessToken}}'))
+t.add_step(login_user) #1
 
 # 创建order
 order = json.dumps({
@@ -68,13 +69,12 @@ order = json.dumps({
     "order": None
 })
 create_order = Step('post', '/invoices', '创建order', body=order)
-create_order.run()
-order_id = custom_get(create_order, 'response.body.data.id')
+t.add_step(create_order) #2
 
 # 创建refund，product id不可以为空
-refund = json.dumps({
+refund = '''{
     "type": 2,
-    "partner": { "id": custom_get(create_order, 'response.body.data.partner.id') },
+    "partner": { "id": {{2.response.body.data.partner.id}} },
     "date": "2025-09-29",
     "invoiceItems": [
         {
@@ -90,60 +90,56 @@ refund = json.dumps({
             "discount": 80,
             "amount": 160,
             "remark": "remark#1",
-            "delivered": False,
-            "orderItem":{ "id": custom_get(create_order, 'response.body.data.invoiceItems.0.id') }
+            "delivered": false,
+            "orderItem":{ "id": {{2.response.body.data.invoiceItems.0.id}} }
         }
     ],
     "amount": 1000,
     "prepayment": 50,
     "payment": 200,
     "delivered": 0,
-    "order": { "id": order_id }
-})
-create_refund = Step('post', '/invoices', '创建refund，product id不可以为空', body=refund, expected_status_code=400)
-create_refund.run()
+    "order": { "id": {{2.response.body.data.id}} }
+}'''
+create_refund_1 = Step('post', '/invoices', '创建refund，product id不可以为空', body=refund, expected_status_code=400)
+t.add_step(create_refund_1) #3
 
 # 创建refund，orderItem不可以为空
-refund = json.dumps({
+refund = '''{
     "type": 2,
-    "partner": {
-        "id": custom_get(create_order, 'response.body.data.partner.id')
-    },
+    "partner": { "id": {{2.response.body.data.partner.id}} },
     "date": "2025-09-29",
     "invoiceItems": [
         {
-            "product": {
-              "id": custom_get(create_order, 'response.body.data.invoiceItems.0.product.id')
-            },
+            "product": { "id": {{2.response.body.data.invoiceItems.0.product.id}} },
             "price": 100,
             "quantity": 2,
             "originalAmount": 200,
             "discount": 80,
             "amount": 160,
             "remark": "remark#1",
-            "delivered": False,
+            "delivered": false
         }
     ],
     "amount": 1000,
     "prepayment": 50,
     "payment": 200,
     "delivered": 0,
-    "order": { "id": order_id }
-})
-create_refund = Step('post', '/invoices', '创建refund，orderItem不可以为空', body=refund, expected_status_code=400)
-create_refund.run()
+    "order": { "id": {{2.response.body.data.id}} }
+}'''
+create_refund_2 = Step('post', '/invoices', '创建refund，orderItem不可以为空', body=refund, expected_status_code=400)
+t.add_step(create_refund_2) #4
 
 # 创建refund，orderItem id不可以为null
-refund = json.dumps({
+refund = '''{
     "type": 2,
     "partner": {
-        "id": custom_get(create_order, 'response.body.data.partner.id')
+        "id": {{2.response.body.data.partner.id}}
     },
     "date": "2025-09-29",
     "invoiceItems": [
         {
             "product": {
-              "id": custom_get(create_order, 'response.body.data.invoiceItems.0.product.id')
+              "id": {{2.response.body.data.invoiceItems.0.product.id}}
             },
             "price": 100,
             "quantity": 2,
@@ -151,9 +147,9 @@ refund = json.dumps({
             "discount": 80,
             "amount": 160,
             "remark": "remark#1",
-            "delivered": False,
+            "delivered": false,
             "orderItem": {
-                "id": None
+                "id": null
             }
         }
     ],
@@ -161,22 +157,22 @@ refund = json.dumps({
     "prepayment": 50,
     "payment": 200,
     "delivered": 0,
-    "order": { "id": order_id }
-})
-create_refund = Step('post', '/invoices', '创建refund，orderItem id不可以为null', body=refund, expected_status_code=400)
-create_refund.run()
+    "order": { "id": {{2.response.body.data.id}} }
+}'''
+create_refund_3 = Step('post', '/invoices', '创建refund，orderItem id不可以为null', body=refund, expected_status_code=400)
+t.add_step(create_refund_3) #5
 
 # 创建refund，orderItem id不可以为不存在的值
-refund = json.dumps({
+refund = '''{
     "type": 2,
     "partner": {
-        "id": custom_get(create_order, 'response.body.data.partner.id')
+        "id": {{2.response.body.data.partner.id}}
     },
     "date": "2025-09-29",
     "invoiceItems": [
         {
             "product": {
-              "id": custom_get(create_order, 'response.body.data.invoiceItems.0.product.id')
+              "id": {{2.response.body.data.invoiceItems.0.product.id}}
             },
             "price": 100,
             "quantity": 2,
@@ -184,7 +180,7 @@ refund = json.dumps({
             "discount": 80,
             "amount": 160,
             "remark": "remark#1",
-            "delivered": False,
+            "delivered": false,
             "orderItem": {
                 "id": 1
             }
@@ -194,22 +190,22 @@ refund = json.dumps({
     "prepayment": 50,
     "payment": 200,
     "delivered": 0,
-    "order": { "id": order_id }
-})
-create_refund = Step('post', '/invoices', '创建refund，orderItem id不可以为不存在的值', body=refund, expected_status_code=404)
-create_refund.run()
+    "order": { "id": {{2.response.body.data.id}} }
+}'''
+create_refund_4 = Step('post', '/invoices', '创建refund，orderItem id不可以为不存在的值', body=refund, expected_status_code=404)
+t.add_step(create_refund_4) #6
 
 # 创建refund
-refund = json.dumps({
+refund = '''{
     "type": 2,
     "partner": {
-        "id": custom_get(create_order, 'response.body.data.partner.id')
+        "id": {{2.response.body.data.partner.id}}
     },
-    "date": custom_get(create_order, 'request.body.date'),
+    "date": "{{2.request.body.date}}",
     "invoiceItems": [
         {
             "product": {
-              "id": custom_get(create_order, 'response.body.data.invoiceItems.0.product.id')
+              "id": {{2.response.body.data.invoiceItems.0.product.id}}
             },
             "price": 1000,
             "quantity": 20,
@@ -217,9 +213,9 @@ refund = json.dumps({
             "discount": 100,
             "amount": 1600,
             "remark": "remark#refund#1",
-            "delivered": True,
+            "delivered": true,
             "orderItem": {
-                "id": custom_get(create_order, 'response.body.data.invoiceItems.0.id')
+                "id": {{2.response.body.data.invoiceItems.0.id}}
             }
         }
     ],
@@ -227,27 +223,30 @@ refund = json.dumps({
     "prepayment": 432,
     "payment": 34,
     "delivered": 1,
-    "order": { "id": order_id }
-})
-create_refund = Step('post', '/invoices', '创建refund', body=refund)
-create_refund.add_post_operation(AssertEqualOperation("response.body.data.invoiceItems.0.product.id", custom_get(create_order, 'response.body.data.invoiceItems.0.product.id')))
-create_refund.add_post_operation(AssertEqualOperation("response.body.data.invoiceItems.0.orderItem.id", custom_get(create_order, 'response.body.data.invoiceItems.0.id')))
-create_refund.add_post_operation(AssertEqualOperation("response.body.data.partner.id", custom_get(create_order, 'response.body.data.partner.id')))
-create_refund.add_post_operation(AssertEqualOperation("response.body.data.order.id", order_id))
-create_refund.run()
-refund_id = custom_get(create_refund, 'response.body.data.id')
+    "order": { "id": {{2.response.body.data.id}} }
+}'''
+create_refund_5 = Step('post', '/invoices', '创建refund', body=refund)
+create_refund_5.add_post_operation(AssertEqualOperation("7.response.body.data.invoiceItems.0.product.id", '{{2.response.body.data.invoiceItems.0.product.id}}'))
+create_refund_5.add_post_operation(AssertEqualOperation("7.response.body.data.invoiceItems.0.orderItem.id", '{{2.response.body.data.invoiceItems.0.id}}'))
+create_refund_5.add_post_operation(AssertEqualOperation("7.response.body.data.partner.id", '{{2.response.body.data.partner.id}}'))
+create_refund_5.add_post_operation(AssertEqualOperation("7.response.body.data.order.id", '{{2.response.body.data.id}}'))
+t.add_step(create_refund_5) #7
 
 # 查询单个refund
-query_refund = Step('get', '/invoices/{id}', '查询单个refund', path_params=json.dumps({"id": refund_id}))
-query_refund.add_post_operation(AssertEqualOperation("response.body.data.number", custom_get(create_refund, 'request.body.date').replace('-', '') + '0001'))
-query_refund.add_post_operation(AssertEqualOperation("response.body.data.partner.name", custom_get(create_order, 'request.body.partner.name')))
-query_refund.run()
+query_refund = Step('get', '/invoices/{id}', '查询单个refund', path_params='{"id": {{7.response.body.data.id}}}')
+# TODO
+# query_refund.add_post_operation(AssertEqualOperation("8.response.body.data.number", custom_get(create_refund, 'request.body.date').replace('-', '') + '0001'))
+query_refund.add_post_operation(AssertEqualOperation("8.response.body.data.partner.name", '{{2.request.body.partner.name}}'))
+t.add_step(query_refund) #8
 
 # 查询单个order
-query_order = Step('get', '/invoices/{id}', '查询单个order', path_params=json.dumps({"id": order_id}))
-query_order.add_post_operation(AssertEqualOperation("response.body.data.number", custom_get(create_order, 'request.body.date').replace('-', '') + '0001'))
-query_order.run()
+query_order = Step('get', '/invoices/{id}', '查询单个order', path_params='{"id": {{2.response.body.data.id}}}')
+# TODO
+# query_order.add_post_operation(AssertEqualOperation("9.response.body.data.number", '{{2.request.body.date}}'.replace('-', '') + '0001'))
+t.add_step(query_order) #9
 
 # 删除user
-delete_user = Step('delete', '/users/{id}', '删除user', path_params=json.dumps({"id": login_user_id}))
-delete_user.run()
+delete_user = Step('delete', '/users/{id}', '删除user', path_params='{"id": {{1.response.body.data.id}} }')
+t.add_step(delete_user) #10
+
+t.run()

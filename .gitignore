@@ -1,2 +1,4 @@
 __pycache__/
 report/
+report_sample/
+.DS_Store

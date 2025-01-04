@@ -6,7 +6,6 @@ from typing import Tuple, List
 import json
 from lib.operation import Operation
 
-
 swagger_json = requests.get('http://localhost:3000/api-doc-json').json()
 
 DEFAULT_STATUS_CODE_DICT = {
@@ -57,6 +56,14 @@ class Step:
     def src_object(self, value):
         self.__src_object = value
 
+    @property
+    def success(self):
+        return self.__success
+
+    @property
+    def method(self):
+        return self.__method
+
     def add_pre_operation(self, operation: Operation):
         self.__pre_operations.append(operation)
 
@@ -96,7 +103,9 @@ class Step:
         ret, post_operation_results = self.__run_operations(self.__post_operations)
         overall_success = overall_success and ret
 
-        return overall_success, pre_operation_results, validation_results, post_operation_results        
+        self.__success = overall_success
+        self.__results = pre_operation_results + validation_results + post_operation_results
+        # return overall_success, pre_operation_results, validation_results, post_operation_results
 
     # run operations, return success and messages
     def __run_operations(self, operations: List[Operation]) -> Tuple[bool, List[Tuple[bool, str]]]:
@@ -136,7 +145,7 @@ class Step:
         
         ret = True
         for error in sorted(validator.iter_errors(self.__response["body"]), key=str):
-            results.append((False, f'{error.json_path}类型错误: {error.message}'))
+            results.append((False, f'返回数据结构与接口定义不一致{error.json_path}: {error.message}'))
             ret = False
         if ret:
             results.append((True, '返回数据结构与接口定义一致'))
@@ -146,24 +155,78 @@ class Step:
 
     # prepare request, return request object
     def __prepare_request(self):
-        path_params = json.loads(custom_replace(self.__path_params_str, self.__src_object))
-        query_params = json.loads(custom_replace(self.__query_params_str, self.__src_object))
-        headers = pydash.merge(
-            { "Authorization" : f"Bearer {get_global_variables('access_token')}" },
-            json.loads(custom_replace(self.__headers_str, self.__src_object))
-        )
-        body = json.loads(custom_replace(self.__body_str, self.__src_object))
-        path = self.__path
-        for key, value in path_params.items():
-            path = path.replace('{' + key + '}', custom_replace(str(value), self.__src_object))
-        url = self.__url_prefix + path
+        try:
+            path_params = json.loads(custom_replace(self.__path_params_str, self.__src_object))
+            query_params = json.loads(custom_replace(self.__query_params_str, self.__src_object))
+            headers = pydash.merge(
+                { "Authorization" : f"Bearer {get_global_variables('access_token')}" },
+                json.loads(custom_replace(self.__headers_str, self.__src_object))
+            )
+            body = json.loads(custom_replace(self.__body_str, self.__src_object))
+            path = self.__path
+            for key, value in path_params.items():
+                path = path.replace('{' + key + '}', custom_replace(str(value), self.__src_object))
+            url = self.__url_prefix + path
 
-        return {
-            "url": url,
-            "path_params": path_params,
-            "query_params": query_params,
-            "headers": headers,
-            "body": body,
-        }
+            return {
+                "url": url,
+                "path_params": path_params,
+                "query_params": query_params,
+                "headers": headers,
+                "body": body,
+            }
+        except Exception as e:
+            raise Exception(f"请求参数解析失败: {e}")
 
-    
+    def html_body(self):
+        def gen_checklist(ret, msg):
+            svg_name = 'success' if ret else 'failed'
+            return f'<p><img src="../svgs/{svg_name}.svg" width="20" height="20" /> {msg}</p>'
+
+        return f'''
+            <h2>{self.__name}</h2>
+            {''.join([gen_checklist(ret, msg) for ret, msg in self.__results])}
+
+            <!-- Tab buttons -->
+            <div class="tab">
+                <button class="tab-links" onclick="openTab(event, 'Response')" id="defaultOpen">
+                    Response
+                </button>
+                <button class="tab-links" onclick="openTab(event, 'Request')">
+                    Request
+                </button>
+            </div>
+
+            <!-- Tab content -->
+            <div id="Response" class="tab-content">
+
+                <p>Status Code: {self.__response['status_code']}</p>
+                <p>Response Time: {self.__response['response_time']}s</p>
+                
+                <h3>Body</h3>
+                <pre>{json.dumps(self.__response["body"], indent=4)}</pre>
+
+                <h3>Headers</h3>
+                <table>
+                    {
+                        "".join([f'<tr><td>{key}</td><td>{value}</td></tr>' for key, value in self.__response["headers"].items()])
+                    }
+                </table>
+            </div>
+
+            <div id="Request" class="tab-content">
+                <pre>{self.__method.upper()} {self.__request["url"]}</pre>
+                <h3>Body</h3>
+                <pre>{json.dumps(self.__request["body"], indent=4)}</pre>
+                <h3>Headers</h3>
+                <table>
+                    {
+                        "".join([f'<tr><td>{key}</td><td>{value}</td></tr>' for key, value in self.__request["headers"].items()])
+                    }
+                </table>
+            </div>
+            <br />
+            <script>
+                document.getElementById("defaultOpen").click();
+            </script>
+        '''

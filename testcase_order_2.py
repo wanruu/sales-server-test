@@ -1,5 +1,5 @@
 from lib.step import Step
-from lib.utils import custom_get
+from lib.testcase import Testcase
 from lib.operation import SetGlobalVariableOperation, AssertEqualOperation
 import json
 
@@ -10,16 +10,17 @@ import json
 # - 创建order时，`order`可以为`null`或不包含，保存时只会是`null`。【这里测试的是`null`】
 #
 
+t = Testcase('创建order，同时创建partner和部分product')
+
 # 创建user
 user = json.dumps({"name": "Hermione", "password": "12345678"})
 create_user = Step('post', '/users', '创建user', body=user)
-create_user.run()
+t.add_step(create_user) #0
 
 # 登录
 login_user = Step('post', '/users/login', '登录', body=user, expected_status_code=200)
-login_user.add_post_operation(SetGlobalVariableOperation('access_token', '{{response.body.data.accessToken}}'))
-login_user.run()
-login_user_id = custom_get(login_user, 'response.body.data.id')
+login_user.add_post_operation(SetGlobalVariableOperation('access_token', '{{1.response.body.data.accessToken}}'))
+t.add_step(login_user) #1
 
 # 创建product
 product = json.dumps({
@@ -30,10 +31,10 @@ product = json.dumps({
     "quantity": 10,
 })
 create_product = Step('post', '/products', '创建product', body=product)
-create_product.run()
+t.add_step(create_product) #2
 
 # 创建order
-order = json.dumps({
+order = '''{
     "type": 0,
     "partner": {
         "name": "name#1",
@@ -43,7 +44,7 @@ order = json.dumps({
     "invoiceItems": [
         {
             "product": {
-                "id": custom_get(create_product, 'response.body.data.id')
+                "id": {{2.response.body.data.id}}
             },
             "price": 100,
             "quantity": 2,
@@ -52,7 +53,7 @@ order = json.dumps({
             "amount": 160,
             "weight": 50,
             "remark": "remark#1",
-            "delivered": True
+            "delivered": true
         },
         {
             "product": {
@@ -67,43 +68,45 @@ order = json.dumps({
             "originalAmount": 200,
             "discount": 80,
             "amount": 160,
-            "weight": None,
+            "weight": null,
             "remark": "remark#2",
-            "delivered": True
+            "delivered": true
         }
     ],
     "amount": 1000,
     "prepayment": 50,
     "payment": 200,
     "delivered": 2,
-    "order": None
-})
+    "order": null
+}'''
 create_order = Step('post', '/invoices', '创建order', body=order)
-create_order.run()
+t.add_step(create_order) #3
 
 # 查询单个partner
-get_partner = Step('get', '/partners/{id}', '查询单个partner', path_params=json.dumps({"id": custom_get(create_order, 'response.body.data.partner.id')}))
-get_partner.add_post_operation(AssertEqualOperation('response.body.data.name', custom_get(create_order, 'request.body.partner.name')))
-get_partner.add_post_operation(AssertEqualOperation('response.body.data.address', custom_get(create_order, 'request.body.partner.address')))
-get_partner.add_post_operation(AssertEqualOperation('response.body.data.folder', ''))
-get_partner.add_post_operation(AssertEqualOperation('response.body.data.phone', ''))
-get_partner.run()
+get_partner = Step('get', '/partners/{id}', '查询单个partner', path_params='{"id": {{3.response.body.data.partner.id}}}')
+get_partner.add_post_operation(AssertEqualOperation('4.response.body.data.name', '{{3.request.body.partner.name}}'))
+get_partner.add_post_operation(AssertEqualOperation('4.response.body.data.address', '{{3.request.body.partner.address}}'))
+get_partner.add_post_operation(AssertEqualOperation('4.response.body.data.folder', ''))
+get_partner.add_post_operation(AssertEqualOperation('4.response.body.data.phone', ''))
+t.add_step(get_partner) #4
 
 # 查询单个order
-get_order = Step('get', '/invoices/{id}', '查询单个order', path_params=json.dumps({"id": custom_get(create_order, 'response.body.data.id')}))
-get_order.add_post_operation(AssertEqualOperation('response.body.data.partner', json.dumps(custom_get(get_partner, 'response.body.data'))))
-get_order.run()
+get_order = Step('get', '/invoices/{id}', '查询单个order', path_params='{"id": {{3.response.body.data.id}}}')
+get_order.add_post_operation(AssertEqualOperation('5.response.body.data.partner', '{{4.response.body.data}}'))
+t.add_step(get_order) #5
 
 # 查询所有product
 get_all_product = Step('get', '/products', '查询所有product')
-get_all_product.add_post_operation(AssertEqualOperation('response.body.data.length', 2))
-get_all_product.run()
+get_all_product.add_post_operation(AssertEqualOperation('6.response.body.data.length', 2))
+t.add_step(get_all_product) #6
 
 # 查询所有invoice
 get_all_invoice = Step('get', '/invoices', '查询所有invoice')
-get_all_invoice.add_post_operation(AssertEqualOperation('response.body.data.length', 1))
-get_all_invoice.run()
+get_all_invoice.add_post_operation(AssertEqualOperation('7.response.body.data.length', 1))
+t.add_step(get_all_invoice) #7
 
 # 删除user
-delete_user = Step('delete', '/users/{id}', '删除user', path_params=json.dumps({ "id": login_user_id }))
-delete_user.run()
+delete_user = Step('delete', '/users/{id}', '删除user', path_params='{ "id": {{1.response.body.data.id}} }')
+t.add_step(delete_user) #8
+
+t.run()

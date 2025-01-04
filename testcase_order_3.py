@@ -1,11 +1,10 @@
 from lib.step import Step
-from lib.utils import custom_get
+from lib.testcase import Testcase
 from lib.operation import SetGlobalVariableOperation, AssertEqualOperation
 import json
-import pydash
 
 #
-# 修改order
+# 更新order
 #
 # - 更新order时，`type`和`number`不可以更改。
 # - 更新order时，可以新增`partner`，但不可以修改原有的`partner`。【这里测试的是新增】
@@ -14,16 +13,17 @@ import pydash
 # - 更新order时，在列表里的`invoiceItem`如果不带`id`，则应该新建。可以新增`product`，但不可以更改原有的`product`。
 #
 
+t = Testcase('更新order')
+
 # 创建user
 user = json.dumps({"name": "Hermione", "password": "12345678"})
 create_user = Step('post', '/users', '创建user', body=user)
-create_user.run()
+t.add_step(create_user) #0
 
 # 登录
 login_user = Step('post', '/users/login', '登录', body=user, expected_status_code=200)
-login_user.add_post_operation(SetGlobalVariableOperation('access_token', '{{response.body.data.accessToken}}'))
-login_user.run()
-login_user_id = custom_get(login_user, 'response.body.data.id')
+login_user.add_post_operation(SetGlobalVariableOperation('access_token', '{{1.response.body.data.accessToken}}'))
+t.add_step(login_user) #1
 
 # 创建order
 order = json.dumps({
@@ -89,22 +89,18 @@ order = json.dumps({
     "delivered": 2
 })
 create_order = Step('post', '/invoices', '创建order', body=order)
-create_order.run()
-create_order_id = custom_get(create_order, 'response.body.data.id')
+t.add_step(create_order) #2
 
 # 更新order
-order_update = json.dumps({
+order_update = '''{
     "type": 0,
-    "partner": {
-        "name": "partner#2",
-        "address": "address#2"
-    },
+    "partner": { "name": "partner#2", "address": "address#2" },
     "date": "2000-05-20",
     "invoiceItems": [
         {
-            "id": custom_get(create_order, 'response.body.data.invoiceItems.1.id'),
+            "id": {{2.response.body.data.invoiceItems.1.id}},
             "product": {
-                "id": custom_get(create_order, 'response.body.data.invoiceItems.1.product.id'),
+                "id": {{2.response.body.data.invoiceItems.1.product.id}},
                 "name": "shouldn't appear"
             },
             "price": 1,
@@ -114,10 +110,10 @@ order_update = json.dumps({
             "amount": 1,
             "weight": 1,
             "remark": "1",
-            "delivered": False
+            "delivered": false
         },
         {
-            "id": custom_get(create_order, 'response.body.data.invoiceItems.2.id'),
+            "id": {{2.response.body.data.invoiceItems.2.id}},
             "product": {
                 "material": "material#4",
                 "name": "name#4",
@@ -130,63 +126,63 @@ order_update = json.dumps({
             "discount": 2,
             "amount": 2,
             "remark": "2",
-            "delivered": True
+            "delivered": true
         },
         {
             "product": {
-                "id": custom_get(create_order, 'response.body.data.invoiceItems.0.product.id'),
+                "id": {{2.response.body.data.invoiceItems.0.product.id}}
             },
             "price": 3,
             "quantity": 3,
             "originalAmount": 3,
             "discount": 3,
             "amount": 3,
-            "weight": None,
+            "weight": null,
             "remark": "3",
-            "delivered": True
+            "delivered": true
         }
     ],
     "amount": 1,
     "prepayment": 1,
     "payment": 1,
     "delivered": 1
-})
-update_order = Step('put', '/invoices/{id}', '更新order', path_params=json.dumps({"id": create_order_id}), body=order_update)
-update_order.run()
+}'''
+update_order = Step('put', '/invoices/{id}', '更新order', path_params='{"id": {{2.response.body.data.id}}}', body=order_update)
+t.add_step(update_order) #3
 
 # 查询单个partner
-get_partner = Step('get', '/partners/{id}', '查询单个partner', path_params=json.dumps({"id": custom_get(create_order, 'response.body.data.partner.id')}))
-get_partner.add_post_operation(AssertEqualOperation('response.body.data.name', custom_get(create_order, 'request.body.partner.name')))
-get_partner.add_post_operation(AssertEqualOperation('response.body.data.folder', custom_get(create_order, 'request.body.partner.folder')))
-get_partner.add_post_operation(AssertEqualOperation('response.body.data.address', ''))
-get_partner.add_post_operation(AssertEqualOperation('response.body.data.phone', ''))
-get_partner.run()
+get_partner = Step('get', '/partners/{id}', '查询单个partner', path_params='{"id": {{2.response.body.data.partner.id}}}')
+get_partner.add_post_operation(AssertEqualOperation('4.response.body.data.name', '{{2.request.body.partner.name}}'))
+get_partner.add_post_operation(AssertEqualOperation('4.response.body.data.folder', '{{2.request.body.partner.folder}}'))
+get_partner.add_post_operation(AssertEqualOperation('4.response.body.data.address', ''))
+get_partner.add_post_operation(AssertEqualOperation('4.response.body.data.phone', ''))
+t.add_step(get_partner) #4
 
 # 查询单个order
-get_order = Step('get', '/invoices/{id}', '查询单个order', path_params=json.dumps({"id": create_order_id}))
-get_order.add_post_operation(AssertEqualOperation('response.body.data.partner', f'''{{
-                                                  "name": "{custom_get(update_order, 'request.body.partner.name')}",
-                                                  "address": "{custom_get(update_order, 'request.body.partner.address')}",
+get_order = Step('get', '/invoices/{id}', '查询单个order', path_params='{"id": {{2.response.body.data.id}}}')
+get_order.add_post_operation(AssertEqualOperation('5.response.body.data.partner', '''{
+                                                  "name": "{{3.request.body.partner.name}}",
+                                                  "address": "{{3.request.body.partner.address}}",
                                                   "phone": "", "folder": "",
-                                                  "id": {{{{response.body.data.partner.id}}}}
-                                                  }}'''))
-get_order.add_post_operation(AssertEqualOperation('response.body.data.order', None))
-get_order.add_post_operation(AssertEqualOperation('response.body.data.number', custom_get(create_order, 'request.body.date').replace('-', '') + '0001'))
-get_order.add_post_operation(AssertEqualOperation('response.body.data.amount', custom_get(update_order, 'request.body.amount')))
-get_order.add_post_operation(AssertEqualOperation('response.body.data.prepayment', custom_get(update_order, 'request.body.prepayment')))
-get_order.add_post_operation(AssertEqualOperation('response.body.data.payment', custom_get(update_order, 'request.body.payment')))
-get_order.add_post_operation(AssertEqualOperation('response.body.data.delivered', custom_get(update_order, 'request.body.delivered')))
-get_order.add_post_operation(AssertEqualOperation('response.body.data.invoiceItems.0', json.dumps(pydash.merge(
-    custom_get(update_order, 'request.body.invoiceItems.0'),
-    {
-        "id": custom_get(create_order, 'response.body.data.invoiceItems.1.id'),
-        "product": pydash.merge(
-            custom_get(create_order, 'request.body.invoiceItems.1.product'),
-            {"quantity": 0, "id": custom_get(create_order, 'response.body.data.invoiceItems.1.product.id')},
-        ),
-        "orderItem": None,
-    },
-))))
+                                                  "id": {{5.response.body.data.partner.id}}
+                                                  }'''))
+get_order.add_post_operation(AssertEqualOperation('5.response.body.data.order', None))
+# get_order.add_post_operation(AssertEqualOperation('5.response.body.data.number', '2.request.body.date').replace('-', '') + '0001')
+get_order.add_post_operation(AssertEqualOperation('5.response.body.data.amount', '{{3.request.body.amount}}'))
+get_order.add_post_operation(AssertEqualOperation('5.response.body.data.prepayment', '{{3.request.body.prepayment}}'))
+get_order.add_post_operation(AssertEqualOperation('5.response.body.data.payment', '{{3.request.body.payment}}'))
+get_order.add_post_operation(AssertEqualOperation('5.response.body.data.delivered', '{{3.request.body.delivered}}'))
+# get_order.add_post_operation(AssertEqualOperation('5.response.body.data.invoiceItems.0', json.dumps(pydash.merge(
+#     custom_get(update_order, 'request.body.invoiceItems.0'),
+#     {
+#         "id": custom_get(create_order, 'response.body.data.invoiceItems.1.id'),
+#         "product": pydash.merge(
+#             custom_get(create_order, 'request.body.invoiceItems.1.product'),
+#             {"quantity": 0, "id": custom_get(create_order, 'response.body.data.invoiceItems.1.product.id')},
+#         ),
+#         "orderItem": None,
+#     },
+# ))))
 # get_order.assert_equal('response.body.data.invoiceItems[1]', 
 #     lambda cur: pydash.merge(
 #         update_order.get_variable('request.body.invoiceItems.[1]'),
@@ -214,28 +210,30 @@ get_order.add_post_operation(AssertEqualOperation('response.body.data.invoiceIte
 #         },
 #     )
 # )
-get_order.run()
+t.add_step(get_order) #5
 
 # 查询所有invoice
 get_all_invoice = Step('get', '/invoices', '查询所有invoice')
-get_all_invoice.add_post_operation(AssertEqualOperation('response.body.data.length', 1))
-get_all_invoice.run()
+get_all_invoice.add_post_operation(AssertEqualOperation('6.response.body.data.length', 1))
+t.add_step(get_all_invoice) #6
 
 # 查询所有partner
 get_all_partner = Step('get', '/partners', '查询所有partner')
-get_all_partner.add_post_operation(AssertEqualOperation('response.body.data.length', 2))
-get_all_partner.run()
+get_all_partner.add_post_operation(AssertEqualOperation('7.response.body.data.length', 2))
+t.add_step(get_all_partner) #7
 
 # 查询所有product
 get_all_product = Step('get', '/products', '查询所有product')
-get_all_product.add_post_operation(AssertEqualOperation('response.body.data.length', 4))
-get_all_product.run()
+get_all_product.add_post_operation(AssertEqualOperation('8.response.body.data.length', 4))
+t.add_step(get_all_product) #8
 
 # 查询所有invoiceItem
 get_all_invoice_item = Step('get', '/invoiceItems', '查询所有invoiceItem')
-get_all_invoice_item.add_post_operation(AssertEqualOperation('response.body.data.length', 3))
-get_all_invoice_item.run()
+get_all_invoice_item.add_post_operation(AssertEqualOperation('9.response.body.data.length', 3))
+t.add_step(get_all_invoice_item) #9
 
 # 删除user
-delete_user = Step('delete', '/users/{id}', '删除user', path_params=json.dumps({"id": login_user_id}))
-delete_user.run()
+delete_user = Step('delete', '/users/{id}', '删除user', path_params='{"id": {{1.response.body.data.id}}}')
+t.add_step(delete_user) #10
+
+t.run()

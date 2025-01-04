@@ -1,5 +1,6 @@
 import pydash
 import re
+import json
 
 global_variables = {}
 
@@ -48,4 +49,8 @@ def custom_replace(string: str, src_object: any):
             string = string.replace(match, str(value).lower())
         elif value is None:
             string = string.replace(match, 'null')
+        elif type(value) == dict:
+            string = string.replace(match, json.dumps(value))
+        else:
+            raise Exception('未实现')
     return string
