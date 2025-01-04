@@ -1,6 +1,8 @@
-from lib.api import Api
-from lib.utils import set_global_variables, assertion
-import pydash
+from lib.step import Step
+from lib.utils import custom_get
+from lib.operation import SetGlobalVariableOperation, AssertEqualOperation
+import json
+
 
 #
 # 创建order，同时创建partner和部分product
@@ -9,29 +11,29 @@ import pydash
 #
 
 # 创建user
-user = {"name": "Hermione", "password": "12345678"}
-create_user = Api('post', '/users', body=user)
+user = json.dumps({"name": "Hermione", "password": "12345678"})
+create_user = Step('post', '/users', '创建user', body=user)
 create_user.run()
 
 # 登录
-login_user = Api('post', '/users/login', body=user, expected_status_code=200)
-login_user.add_operation('post', lambda cur: set_global_variables("access_token", cur.get_variable('response.body.data.accessToken')))
+login_user = Step('post', '/users/login', '登录', body=user, expected_status_code=200)
+login_user.add_post_operation(SetGlobalVariableOperation('access_token', '{{response.body.data.accessToken}}'))
 login_user.run()
-login_user_id = login_user.get_variable('response.body.data.id')
+login_user_id = custom_get(login_user, 'response.body.data.id')
 
 # 创建product
-product = {
+product = json.dumps({
     "material": "material#1",
     "name": "name#1",
     "spec": "spec#1",
     "unit": "unit#1",
     "quantity": 10,
-}
-create_product = Api('post', '/products', body=product)
+})
+create_product = Step('post', '/products', '创建product', body=product)
 create_product.run()
 
 # 创建order
-order = {
+order = json.dumps({
     "type": 0,
     "partner": {
         "name": "name#1",
@@ -41,7 +43,7 @@ order = {
     "invoiceItems": [
         {
             "product": {
-                "id": create_product.get_variable('response.body.data.id'),
+                "id": custom_get(create_product, 'response.body.data.id')
             },
             "price": 100,
             "quantity": 2,
@@ -75,33 +77,33 @@ order = {
     "payment": 200,
     "delivered": 2,
     "order": None
-}
-create_order = Api('post', '/invoices', body=order)
+})
+create_order = Step('post', '/invoices', '创建order', body=order)
 create_order.run()
 
 # 查询单个partner
-get_partner = Api('get', '/partners/{id}', path_params={"id": create_order.get_variable('response.body.data.partner.id')})
-get_partner.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.name'), '==', create_order.get_variable('request.body.partner.name')))
-get_partner.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.address'), '==', create_order.get_variable('request.body.partner.address')))
-get_partner.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.folder'), '==', ''))
-get_partner.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.phone'), '==', ''))
+get_partner = Step('get', '/partners/{id}', '查询单个partner', path_params=json.dumps({"id": custom_get(create_order, 'response.body.data.partner.id')}))
+get_partner.add_post_operation(AssertEqualOperation('response.body.data.name', custom_get(create_order, 'request.body.partner.name')))
+get_partner.add_post_operation(AssertEqualOperation('response.body.data.address', custom_get(create_order, 'request.body.partner.address')))
+get_partner.add_post_operation(AssertEqualOperation('response.body.data.folder', ''))
+get_partner.add_post_operation(AssertEqualOperation('response.body.data.phone', ''))
 get_partner.run()
 
 # 查询单个order
-get_order = Api('get', '/invoices/{id}', path_params={"id": create_order.get_variable('response.body.data.id')})
-get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.partner'), '==', get_partner.get_variable('response.body.data')))
+get_order = Step('get', '/invoices/{id}', '查询单个order', path_params=json.dumps({"id": custom_get(create_order, 'response.body.data.id')}))
+get_order.add_post_operation(AssertEqualOperation('response.body.data.partner', json.dumps(custom_get(get_partner, 'response.body.data'))))
 get_order.run()
 
 # 查询所有product
-get_all_product = Api('get', '/products')
-get_all_product.add_operation('post', lambda cur: assertion(len(cur.get_variable('response.body.data')), '==', 2))
+get_all_product = Step('get', '/products', '查询所有product')
+get_all_product.add_post_operation(AssertEqualOperation('response.body.data.length', 2))
 get_all_product.run()
 
 # 查询所有invoice
-get_all_invoice = Api('get', '/invoices')
-get_all_invoice.add_operation('post', lambda cur: assertion(len(cur.get_variable('response.body.data')), '==', 1))
+get_all_invoice = Step('get', '/invoices', '查询所有invoice')
+get_all_invoice.add_post_operation(AssertEqualOperation('response.body.data.length', 1))
 get_all_invoice.run()
 
 # 删除user
-delete_user = Api('delete', '/users/{id}', path_params={"id": login_user_id})
+delete_user = Step('delete', '/users/{id}', '删除user', path_params=json.dumps({ "id": login_user_id }))
 delete_user.run()

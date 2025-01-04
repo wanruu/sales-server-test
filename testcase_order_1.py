@@ -1,5 +1,6 @@
-from lib.api import Api
-from lib.utils import set_global_variables, assertion
+from lib.step import Step
+from lib.testcase import Testcase
+from lib.utils import set_global_variables
 import pydash
 
 #
@@ -12,16 +13,18 @@ import pydash
 # - 创建order时，已存在的product，不可以更改信息。
 #
 
+testcase = Testcase('创建order，同时创建部分product')
+
 # 创建user
 user = {"name": "Hermione", "password": "12345678"}
-create_user = Api('post', '/users', body=user)
-create_user.run()
+create_user = Step('post', '/users', body=user)
+testcase.add_step(create_user) #0
 
 # 登录
-login_user = Api('post', '/users/login', body=user, expected_status_code=200)
+login_user = Step('post', '/users/login', body=user, expected_status_code=200)
 login_user.add_operation('post', lambda cur: set_global_variables("access_token", cur.get_variable('response.body.data.accessToken')))
-login_user.run()
-login_user_id = login_user.get_variable('response.body.data.id')
+testcase.add_step(login_user) #1
+# login_user_id = login_user.get_variable('response.body.data.id') TODO
 
 # 创建product
 product = {
@@ -31,8 +34,8 @@ product = {
     "unit": "unit#1",
     "quantity": 10,
 }
-create_product = Api('post', '/products', body=product)
-create_product.run()
+create_product = Step('post', '/products', body=product)
+testcase.add_step(create_product) #2
 
 # 创建partner
 partner = {
@@ -41,14 +44,14 @@ partner = {
     "address": "address#1",
     "folder": "folder#1"
 }
-create_partner = Api('post', '/partners', body=partner)
-create_partner.run()
+create_partner = Step('post', '/partners', body=partner)
+testcase.add_step(create_partner) #3
 
 # 创建order
 order = {
     "type": 0,
     "partner": {
-        "id": create_partner.get_variable('response.body.data.id')
+        "id": testcase.get_variable('response.body.data.id')
     },
     "date": "2024-05-20",
     "invoiceItems": [
@@ -103,21 +106,21 @@ order = {
     "payment": 200,
     "delivered": 2
 }
-create_order = Api('post', '/invoices', body=order)
+create_order = Step('post', '/invoices', body=order)
 create_order.run()
 
 # 查询单个order
-get_order = Api('get', '/invoices/{id}', path_params={"id": create_order.get_variable('response.body.data.id')})
-get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.partner'), '==', create_partner.get_variable('response.body.data')))
-get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.order'), '==', None))
-get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.number'), '==', create_order.get_variable('request.body.date').replace('-', '') + '0001'))
-get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.type'), '==', create_order.get_variable('request.body.type')))
-get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.amount'), '==', create_order.get_variable('request.body.amount')))
-get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.prepayment'), '==', create_order.get_variable('request.body.prepayment')))
-get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.payment'), '==', create_order.get_variable('request.body.payment')))
-get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.delivered'), '==', create_order.get_variable('request.body.delivered')))
-get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.invoiceItems[0]'), '==', 
-    pydash.merge(
+get_order = Step('get', '/invoices/{id}', path_params={"id": create_order.get_variable('response.body.data.id')})
+get_order.assert_equal('response.body.data.partner', create_partner.get_variable('response.body.data'))
+get_order.assert_equal('response.body.data.order', None)
+get_order.assert_equal('response.body.data.number', create_order.get_variable('request.body.date').replace('-', '') + '0001')
+get_order.assert_equal('response.body.data.type', create_order.get_variable('request.body.type'))
+get_order.assert_equal('response.body.data.amount', create_order.get_variable('request.body.amount'))
+get_order.assert_equal('response.body.data.prepayment', create_order.get_variable('request.body.prepayment'))
+get_order.assert_equal('response.body.data.payment', create_order.get_variable('request.body.payment'))
+get_order.assert_equal('response.body.data.delivered', create_order.get_variable('request.body.delivered'))
+get_order.assert_equal('response.body.data.invoiceItems[0]', 
+    lambda cur: pydash.merge(
         create_order.get_variable('request.body.invoiceItems.[0]'),
         {
             "id": cur.get_variable('response.body.data.invoiceItems.[0].id'), # not check
@@ -125,9 +128,9 @@ get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response
             "orderItem": None,
         },
     )
-))
-get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.invoiceItems[1]'), '==', 
-    pydash.merge(
+)
+get_order.assert_equal('response.body.data.invoiceItems[1]', 
+    lambda cur: pydash.merge(
         create_order.get_variable('request.body.invoiceItems.[1]'),
         {
             "id": cur.get_variable('response.body.data.invoiceItems.[1].id'), # not check
@@ -138,9 +141,9 @@ get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response
             "orderItem": None,
         },
     )
-))
-get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response.body.data.invoiceItems[2]'), '==', 
-    pydash.merge(
+)
+get_order.assert_equal('response.body.data.invoiceItems[2]', 
+    lambda cur: pydash.merge(
         create_order.get_variable('request.body.invoiceItems.[2]'),
         {
             "id": cur.get_variable('response.body.data.invoiceItems.[2].id'), # not check
@@ -156,30 +159,30 @@ get_order.add_operation('post', lambda cur: assertion(cur.get_variable('response
             "orderItem": None,
         },
     )
-))
+)
 get_order.run()
 
 
 # 查询所有invoice
-get_all_invoice = Api('get', '/invoices')
-get_all_invoice.add_operation('post', lambda cur: assertion(len(cur.get_variable('response.body.data')), '==', 1))
+get_all_invoice = Step('get', '/invoices')
+get_all_invoice.assert_equal('response.body.data.length', 1)
 get_all_invoice.run()
 
 # 查询所有product
-get_all_product = Api('get', '/products')
-get_all_product.add_operation('post', lambda cur: assertion(len(cur.get_variable('response.body.data')), '==', 3))
+get_all_product = Step('get', '/products')
+get_all_product.assert_equal('response.body.data.length', 3)
 get_all_product.run()
 
 # 查询所有partner
-get_all_partner = Api('get', '/partners')
-get_all_partner.add_operation('post', lambda cur: assertion(len(cur.get_variable('response.body.data')), '==', 1))
+get_all_partner = Step('get', '/partners')
+get_all_partner.assert_equal('response.body.data.length', 1)
 get_all_partner.run()
 
 # 查询所有invoiceItem
-get_all_invoice_item = Api('get', '/invoiceItems')
-get_all_invoice_item.add_operation('post', lambda cur: assertion(len(cur.get_variable('response.body.data')), '==', 3))
+get_all_invoice_item = Step('get', '/invoiceItems')
+get_all_invoice_item.assert_equal('response.body.data.length', 3)
 get_all_invoice_item.run()
 
 # 删除user
-delete_user = Api('delete', '/users/{id}', path_params={"id": login_user_id})
+delete_user = Step('delete', '/users/{id}', path_params={"id": login_user_id})
 delete_user.run()
