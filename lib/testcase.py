@@ -1,8 +1,7 @@
 from lib.step import Step
 from typing import List
 import os
-from lib.resources import report_root, latest, latest_filepath, max_latest_length
-import json
+from lib.resources import save_latest, src_dirpath, prepare
 import datetime
 
 class Testcase:
@@ -25,7 +24,8 @@ class Testcase:
                         break
             names.add(step.name)
         
-        self.__dirpath = os.path.join(report_root, self.__dirname)
+        prepare()
+        self.__dirpath = os.path.join(src_dirpath, self.__dirname)
         if (not os.path.exists(self.__dirpath)):
             os.mkdir(self.__dirpath)
 
@@ -57,8 +57,8 @@ class Testcase:
     def __save_step(self, step_index):
         header = '''
             <head>
-                <link rel="stylesheet" href="../base.css" />
-                <script src="../script.js"></script>
+                <link rel="stylesheet" href="../../base.css" />
+                <script src="../../script.js"></script>
             </head>
         '''
         step: Step = self.__steps[step_index]
@@ -86,62 +86,29 @@ class Testcase:
         header = '''
             <head>
                 <title>Testcase1</title>
-                <link rel="stylesheet" href="../base.css" />
+                <link rel="stylesheet" href="../../base.css" />
             </head>
         '''
         body = self.html_body()
         filepath = os.path.join(self.__dirpath, 'index.html')
         with open(filepath, 'w+') as f:
             f.write(f'<!DOCTYPE html><html>{header}<body>{body}</body></html>')
-        
-        # update latest
-        latest.insert(0, {
+
+        # update latest and save
+        save_latest({
             "name": self.__name,
             "dirname": self.__dirname,
             "total_steps": len(self.__steps),
             "success_steps": self.__success_count
         })
-        if len(latest) > max_latest_length:
-            latest.pop()
-        def gen_latest_row(item):
-            svg_name = 'success' if item["total_steps"] == item["success_steps"] else 'failed'
-            return f'''
-                <tr>
-                    <td><img src="./svgs/{svg_name}.svg" width="20" height="20" /></td>
-                    <td><a href="{item["dirname"]}/index.html">{item["name"]}</a></td>
-                    <td>{item["success_steps"] / item["total_steps"] * 100:.1f}%</td>
-                </tr>
-            '''
-        latest_html = f'''<!DOCTYPE html>
-            <html>
-            <head>
-                <title>Test Report</title>
-                <link rel="stylesheet" href="base.css" />
-            </head>
-            <body>
-                <h1>Test Report</h1>
-                <table>
-                    <tr>
-                        <th></th>
-                        <th>Testcase</th>
-                        <th>Pass Rate</th>
-                    </tr>
-                    {''.join([gen_latest_row(item) for item in latest])}
-                </table>
-            </body>
-            </html>'''
-        with open(os.path.join(report_root, 'index.html'), 'w+') as f:
-            f.write(latest_html)
-        with open(latest_filepath, 'w+') as f:
-            json.dump(latest, f)
 
     def html_body(self):
         table_rows = "".join([f'''
                                 <tr>
                                     <td>{
-                                        '<img src="../svgs/success.svg" width="20" height="20" />'
+                                        '<img src="../../svgs/success.svg" width="20" height="20" />'
                                         if step.success else 
-                                        '<img src="../svgs/failed.svg" width="20" height="20" />'}
+                                        '<img src="../../svgs/failed.svg" width="20" height="20" />'}
                                     </td>
                                     <td><a href="{step.name}.html">{step.name}</a></td>
                                     <td>{step.method.upper()} {step.request['url']}</td>
@@ -164,5 +131,5 @@ class Testcase:
                 {table_rows}
             </table>
             <br/>
-            <button onclick="window.location.href='../index.html'">Back</button>
+            <button onclick="window.location.href='../../index.html'">Back</button>
         '''

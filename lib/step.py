@@ -181,7 +181,7 @@ class Step:
     def html_body(self):
         def gen_checklist(ret, msg):
             svg_name = 'success' if ret else 'failed'
-            return f'<p><img src="../svgs/{svg_name}.svg" width="20" height="20" /> {msg}</p>'
+            return f'<p><img src="../../svgs/{svg_name}.svg" width="20" height="20" /> {msg}</p>'
 
         return f'''
             <h2>{self.__name}</h2>
