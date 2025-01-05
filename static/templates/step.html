@@ -5,6 +5,7 @@
 
 <body>
     <h1 id="testcase_title"></h1>
+    <h2 id="step_title"></h2>
 
     <div style="justify-content: space-between; display: flex;">
         <span>
@@ -16,8 +17,6 @@
             <button id="next_button">Next</button>
         </span>
     </div>
-
-    <h2 id="step_title"></h2>
 
     <div id="checklist"></div>
 
@@ -40,7 +39,12 @@
         <pre id="response_body"></pre>
 
         <h3>Headers</h3>
-        <table id="response_headers"></table>
+        <table id="response_headers">
+            <tr>
+                <th>Key</th>
+                <th>Value</th>
+            </tr>
+        </table>
     </div>
 
     <div id="Request" class="tab-content">
@@ -50,7 +54,12 @@
         <pre id="request_body"></pre>
 
         <h3>Headers</h3>
-        <table id="request_headers"></table>
+        <table id="request_headers">
+            <tr>
+                <th>Key</th>
+                <th>Value</th>
+            </tr>
+        </table>
     </div>
     <br />
 

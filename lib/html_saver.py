@@ -29,7 +29,7 @@ _IMG_DIR_PATH = os.path.join(_STATIC_DIR_PATH, "images")
 _JS_DIR_PATH = os.path.join(_STATIC_DIR_PATH, "js")
 _TEMPLATE_DIR_PATH = os.path.join(_STATIC_DIR_PATH, "templates")
 
-_MAX_TESTCASE_NUM = 2
+_MAX_TESTCASE_NUM = 20
 
 
 # auto include base.css, script.js

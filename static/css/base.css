@@ -47,8 +47,8 @@ th {
     color: #bbb;
 }
 
-.tab button:hover,
-.tab button:active {
+.tab button:hover:not(:disabled),
+.tab button:active:not(:disabled) {
     background-color: inherit;
     border-radius: 0;
     color: #239e23;
@@ -83,4 +83,11 @@ button:active:not(:disabled) {
 
 img {
     vertical-align: middle;
+}
+
+#request_headers,
+#response_headers {
+    td:last-child {
+        word-break: break-all;
+    }
 }
