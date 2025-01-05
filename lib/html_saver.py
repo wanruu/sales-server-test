@@ -58,6 +58,7 @@ def get_svg(success: bool, cur_dirpath):
 class Recent:
     def __init__(self):
         self.__load()
+        self.__clean_old_testcases()
 
     @property
     def data(self):
@@ -80,21 +81,21 @@ class Recent:
     def save(self):
         with open(_RECENT_FILE_PATH, "w+") as f:
             json.dump(self.__data, f)
-        self.__clean_old_testcases()
 
     def __clean_old_testcases(self):
-        whitelist_dirnames = [t["dirname"] for t in self.__data]
-        existing_dirnames = [
-            os.path.basename(dirname)
-            for dirname in os.listdir(_TESTCASES_DIR_PATH)
-            if os.path.isdir(os.path.join(_TESTCASES_DIR_PATH, dirname))
-        ]
-        for dirname in existing_dirnames:
-            if dirname not in whitelist_dirnames:
-                shutil.rmtree(os.path.join(_TESTCASES_DIR_PATH, dirname))
-        for dirname in whitelist_dirnames:
-            if not os.path.exists(os.path.join(_TESTCASES_DIR_PATH, dirname)):
-                whitelist_dirnames.remove(dirname)
+        if (os.path.exists(_TESTCASES_DIR_PATH)):
+            whitelist_dirnames = [t["dirname"] for t in self.__data]
+            existing_dirnames = [
+                os.path.basename(dirname)
+                for dirname in os.listdir(_TESTCASES_DIR_PATH)
+                if os.path.isdir(os.path.join(_TESTCASES_DIR_PATH, dirname))
+            ]
+            for dirname in existing_dirnames:
+                if dirname not in whitelist_dirnames:
+                    shutil.rmtree(os.path.join(_TESTCASES_DIR_PATH, dirname))
+            for dirname in whitelist_dirnames:
+                if not os.path.exists(os.path.join(_TESTCASES_DIR_PATH, dirname)):
+                    whitelist_dirnames.remove(dirname)
 
     def __load(self):
         try:
@@ -134,7 +135,8 @@ class HtmlSaver:
             f.write(self.__gen_index_html_body(_REPORT_DIR_PATH))
 
         # testcase: index.html, step1.html, step2.html, ...
-        for testcase in self.__new_testcases:
+        for idx, testcase in enumerate(self.__new_testcases):
+            # normal
             testcase_dirpath = os.path.join(_TESTCASES_DIR_PATH, testcase.dirname)
             with open(os.path.join(testcase_dirpath, "index.html"), "w+") as f:
                 f.write(self.__gen_testcase_html_body(testcase, testcase_dirpath))
@@ -143,6 +145,18 @@ class HtmlSaver:
                     os.path.join(testcase_dirpath, f"{step.name}.html"), "w+"
                 ) as f:
                     f.write(self.__gen_step_html_body(testcase, i, testcase_dirpath))
+            # extra: latest
+            if idx == len(self.__new_testcases) - 1:
+                testcase_dirpath = os.path.join(_TESTCASES_DIR_PATH, "latest")
+                with open(os.path.join(testcase_dirpath, "index.html"), "w+") as f:
+                    f.write(self.__gen_testcase_html_body(testcase, testcase_dirpath))
+                for i, step in enumerate(testcase.steps):
+                    with open(
+                        os.path.join(testcase_dirpath, f"{step.name}.html"), "w+"
+                    ) as f:
+                        f.write(
+                            self.__gen_step_html_body(testcase, i, testcase_dirpath)
+                        )
 
     def __prepare_save(self):
         if not os.path.exists(_REPORT_DIR_PATH):
@@ -155,6 +169,9 @@ class HtmlSaver:
             )
             if not os.path.exists(new_testcase_dirpath):
                 os.makedirs(new_testcase_dirpath)
+        latest_testcase_dirpath = os.path.join(_TESTCASES_DIR_PATH, "latest")
+        if not os.path.exists(latest_testcase_dirpath):
+            os.makedirs(latest_testcase_dirpath)
 
     def __gen_step_html_body(self, testcase, index, dirpath):
         step = testcase.steps[index]
@@ -163,7 +180,9 @@ class HtmlSaver:
         head = gen_html_head(f"Testcase: {testcase.name}, step {index+1}", dirpath)
         soup.find("head").append(head)
         # set title
-        soup.find(attrs={"id": "testcase_title"}).string = f"{testcase.name}: #{index+1}"
+        soup.find(attrs={"id": "testcase_title"}).string = (
+            f"{testcase.name}: #{index+1}"
+        )
         soup.find(attrs={"id": "step_title"}).string = step.name
         # set check list
         checklist = soup.find(attrs={"id": "checklist"})
@@ -174,9 +193,16 @@ class HtmlSaver:
             p.append(f" {msg}")
             checklist.append(p)
         # set response
-        soup.find(attrs={"id": "status_code"}).string = str(step.response["status_code"])
-        soup.find(attrs={"id": "response_time"}).string = f"{step.response['response_time']*1000:.0f} ms"
-        soup.find(attrs={"id": "response_body"}).string = json.dumps(step.response["body"], indent=4)
+        soup.find(attrs={"id": "status_code"}).string = str(
+            step.response["status_code"]
+        )
+        soup.find(attrs={"id": "response_time"}).string = (
+            f"{step.response['response_time']*1000:.0f} ms"
+        )
+        soup.find(attrs={"id": "response_body"}).string = json.dumps(
+            step.response["body"], indent=4
+        )
+
         def set_headers_table(element, data):
             for key, value in data.items():
                 tr = soup.new_tag("tr")
@@ -187,22 +213,35 @@ class HtmlSaver:
                 td.string = value
                 tr.append(td)
                 element.append(tr)
-        set_headers_table(soup.find(attrs={"id": "response_headers"}), step.response["headers"])
+
+        set_headers_table(
+            soup.find(attrs={"id": "response_headers"}), step.response["headers"]
+        )
         # set request
-        soup.find(attrs={"id": "request_method_url"}).string = f"{step.method.upper()} {step.request['url']}"
-        soup.find(attrs={"id": "request_body"}).string = json.dumps(step.request["body"], indent=4)
-        set_headers_table(soup.find(attrs={"id": "request_headers"}), step.request["headers"])
+        soup.find(attrs={"id": "request_method_url"}).string = (
+            f"{step.method.upper()} {step.request['url']}"
+        )
+        soup.find(attrs={"id": "request_body"}).string = json.dumps(
+            step.request["body"], indent=4
+        )
+        set_headers_table(
+            soup.find(attrs={"id": "request_headers"}), step.request["headers"]
+        )
         # set prev/next buttons
         prev_button = soup.find(attrs={"id": "prev_button"})
         next_button = soup.find(attrs={"id": "next_button"})
         if index == 0:
             prev_button["disabled"] = True
         else:
-            prev_button["onclick"] = f"window.location.href='{testcase.steps[index-1].name}.html'"
+            prev_button["onclick"] = (
+                f"window.location.href='{testcase.steps[index-1].name}.html'"
+            )
         if index == len(testcase.steps) - 1:
             next_button["disabled"] = True
         else:
-            next_button["onclick"] = f"window.location.href='{testcase.steps[index+1].name}.html'"
+            next_button["onclick"] = (
+                f"window.location.href='{testcase.steps[index+1].name}.html'"
+            )
         return soup.prettify()
 
     def __gen_testcase_html_body(self, testcase, dirpath):
@@ -251,7 +290,12 @@ class HtmlSaver:
             row.append(td)
 
             table.append(row)
-
+        # set back button
+        back_button = soup.find(attrs={"id": "back_button"})
+        back_href = os.path.relpath(
+            os.path.join(_REPORT_DIR_PATH, "index.html"), dirpath
+        )
+        back_button["onclick"] = f"window.location.href='{back_href}'"
         return soup.prettify()
 
     def __gen_index_html_body(self, dirpath):
@@ -259,7 +303,7 @@ class HtmlSaver:
         head = gen_html_head("API Send Report", dirpath)
         soup.find("head").append(head)
         table = soup.find(attrs={"id": "testcases_table"})
-        for recent in self.__recent.data:
+        for idx, recent in enumerate(self.__recent.data):
             row = soup.new_tag("tr")
             # col 1: status
             td = soup.new_tag("td")
@@ -270,10 +314,16 @@ class HtmlSaver:
             # col 2: name
             td = soup.new_tag("td")
             name_link = soup.new_tag("a")
-            name_link["href"] = os.path.relpath(
-                os.path.join(_TESTCASES_DIR_PATH, recent["dirname"], "index.html"),
-                dirpath,
-            )
+            if idx == 0:
+                name_link["href"] = os.path.relpath(
+                    os.path.join(_TESTCASES_DIR_PATH, "latest", "index.html"),
+                    dirpath,
+                )
+            else:
+                name_link["href"] = os.path.relpath(
+                    os.path.join(_TESTCASES_DIR_PATH, recent["dirname"], "index.html"),
+                    dirpath,
+                )
             name_link.string = recent["name"]
             td.append(name_link)
             row.append(td)
