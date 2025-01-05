@@ -33,6 +33,10 @@ class Testcase:
     @property
     def description(self):
         return self.__description
+    
+    @description.setter
+    def description(self, value):
+        self.__description = value
 
     @property
     def dirname(self):

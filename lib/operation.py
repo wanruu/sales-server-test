@@ -28,6 +28,8 @@ class AssertEqualOperation(Operation):
                 )
             elif type(actual_value) == int or type(actual_value) == float:
                 return str(actual_value) == replaced_value, msg
+            elif type(actual_value) == bool:
+                return str(actual_value).lower() == replaced_value.lower(), msg
             else:
                 return actual_value == replaced_value, msg
         except Exception as e:

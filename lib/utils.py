@@ -45,16 +45,26 @@ def custom_get(obj: any, path: str):
 
 # replace {{value}} in object by path
 def custom_replace(string: str, src_object: any):
-    for match in re.findall(r"{{[a-zA-Z0-9_\.]+}}", string):
-        value = custom_get(src_object, match[2:-2])
+    substr_func = r"(?:\.substr\(\s*(\d+)\s*(?:,\s*(\d+)\s*)?\))?"
+    for match in re.findall(r"({{([a-zA-Z0-9_\.]+)" + substr_func + r"}})", string):
+        value = custom_get(src_object, match[1])
+
         if type(value) == str or type(value) == int or type(value) == float:
-            string = string.replace(match, str(value))
+            value = str(value)
         elif type(value) == bool:
-            string = string.replace(match, str(value).lower())
+            value = str(value).lower()
         elif value is None:
-            string = string.replace(match, "null")
+            value = "null"
         elif type(value) == dict:
-            string = string.replace(match, json.dumps(value))
+            value = json.dumps(value)
         else:
             raise Exception("未实现")
+
+        # substr
+        start = int(match[2]) if match[2] != "" else 0
+        end = int(match[3]) if match[3] != "" else len(value)
+        value = value[start:end]
+
+        string = string.replace(match[0], value)
+
     return string
