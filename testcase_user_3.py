@@ -34,7 +34,7 @@ login_user_1 = Step(
     "post", "/users/login", "登录user1", body=user_1, expected_status_code=200
 )
 login_user_1.add_post_operation(
-    SetGlobalVariableOperation("access_token", "{{3.response.body.data.accessToken}}")
+    SetGlobalVariableOperation("access_token", "{{3.response.body.accessToken}}")
 )
 t.add_step(login_user_1)  # 3
 
@@ -45,7 +45,7 @@ update_user_1 = Step(
     "/users/{id}",
     "修改user1为user2的name，失败",
     body=user_1_update,
-    path_params='{ "id": {{3.response.body.data.id}} }',
+    path_params='{ "id": {{3.response.body.id}} }',
     expected_status_code=409,
 )
 t.add_step(update_user_1)  # 4
@@ -55,7 +55,7 @@ delete_user_1 = Step(
     "delete",
     "/users/{id}",
     "删除user1",
-    path_params='{ "id": {{3.response.body.data.id}} }',
+    path_params='{ "id": {{3.response.body.id}} }',
 )
 t.add_step(delete_user_1)  # 5
 
@@ -64,7 +64,7 @@ login_user_2 = Step(
     "post", "/users/login", "登录user2", body=user_2, expected_status_code=200
 )
 login_user_2.add_post_operation(
-    SetGlobalVariableOperation("access_token", "{{6.response.body.data.accessToken}}")
+    SetGlobalVariableOperation("access_token", "{{6.response.body.accessToken}}")
 )
 t.add_step(login_user_2)  # 6
 
@@ -73,7 +73,7 @@ delete_user_2 = Step(
     "delete",
     "/users/{id}",
     "删除user2",
-    path_params='{ "id": {{6.response.body.data.id}} }',
+    path_params='{ "id": {{6.response.body.id}} }',
 )
 t.add_step(delete_user_2)  # 7
 

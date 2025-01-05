@@ -21,7 +21,7 @@ t.add_step(create_user)  # 0
 # 登录
 login_user = Step("post", "/users/login", "登录", body=user, expected_status_code=200)
 login_user.add_post_operation(
-    SetGlobalVariableOperation("access_token", "{{1.response.body.data.accessToken}}")
+    SetGlobalVariableOperation("access_token", "{{1.response.body.accessToken}}")
 )
 t.add_step(login_user)  # 1
 
@@ -49,7 +49,7 @@ order = """{
     "invoiceItems": [
         {
             "product": {
-                "id": {{2.response.body.data.id}}
+                "id": {{2.response.body.id}}
             },
             "price": 100,
             "quantity": 2,
@@ -92,18 +92,18 @@ get_partner = Step(
     "get",
     "/partners/{id}",
     "查询单个partner",
-    path_params='{"id": {{3.response.body.data.partner.id}}}',
+    path_params='{"id": {{3.response.body.partner.id}}}',
 )
 get_partner.add_post_operation(
-    AssertEqualOperation("4.response.body.data.name", "{{3.request.body.partner.name}}")
+    AssertEqualOperation("4.response.body.name", "{{3.request.body.partner.name}}")
 )
 get_partner.add_post_operation(
     AssertEqualOperation(
-        "4.response.body.data.address", "{{3.request.body.partner.address}}"
+        "4.response.body.address", "{{3.request.body.partner.address}}"
     )
 )
-get_partner.add_post_operation(AssertEqualOperation("4.response.body.data.folder", ""))
-get_partner.add_post_operation(AssertEqualOperation("4.response.body.data.phone", ""))
+get_partner.add_post_operation(AssertEqualOperation("4.response.body.folder", ""))
+get_partner.add_post_operation(AssertEqualOperation("4.response.body.phone", ""))
 t.add_step(get_partner)  # 4
 
 # 查询单个order
@@ -111,10 +111,10 @@ get_order = Step(
     "get",
     "/invoices/{id}",
     "查询单个order",
-    path_params='{"id": {{3.response.body.data.id}}}',
+    path_params='{"id": {{3.response.body.id}}}',
 )
 get_order.add_post_operation(
-    AssertEqualOperation("5.response.body.data.partner", "{{4.response.body.data}}")
+    AssertEqualOperation("5.response.body.partner", "{{4.response.body}}")
 )
 t.add_step(get_order)  # 5
 
@@ -137,7 +137,7 @@ delete_user = Step(
     "delete",
     "/users/{id}",
     "删除user",
-    path_params='{ "id": {{1.response.body.data.id}} }',
+    path_params='{ "id": {{1.response.body.id}} }',
 )
 t.add_step(delete_user)  # 8
 

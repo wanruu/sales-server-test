@@ -24,7 +24,7 @@ query_user_1 = Step(
     "get",
     "/users/{id}",
     "查询user1，401",
-    path_params='{ "id": {{0.response.body.data.id}} }',
+    path_params='{ "id": {{0.response.body.id}} }',
     expected_status_code=401,
 )
 t.add_step(query_user_1)  # 2
@@ -34,7 +34,7 @@ login_user_1 = Step(
     "post", "/users/login", "登录user1", body=user_1, expected_status_code=200
 )
 login_user_1.add_post_operation(
-    SetGlobalVariableOperation("access_token", "{{3.response.body.data.accessToken}}")
+    SetGlobalVariableOperation("access_token", "{{3.response.body.accessToken}}")
 )
 t.add_step(login_user_1)  # 3
 
@@ -43,7 +43,7 @@ query_user_2 = Step(
     "get",
     "/users/{id}",
     "查询user2，401",
-    path_params='{ "id": {{1.response.body.data.id}} }',
+    path_params='{ "id": {{1.response.body.id}} }',
     expected_status_code=401,
 )
 t.add_step(query_user_2)  # 4
@@ -54,7 +54,7 @@ update_user_2 = Step(
     "patch",
     "/users/{id}",
     "修改user2，401",
-    path_params='{ "id": {{1.response.body.data.id}} }',
+    path_params='{ "id": {{1.response.body.id}} }',
     body=user_2_update,
     expected_status_code=401,
 )
@@ -65,7 +65,7 @@ delete_user_1 = Step(
     "delete",
     "/users/{id}",
     "删除user1",
-    path_params='{ "id": {{3.response.body.data.id}} }',
+    path_params='{ "id": {{3.response.body.id}} }',
 )
 t.add_step(delete_user_1)  # 6
 
@@ -74,7 +74,7 @@ login_user_2 = Step(
     "post", "/users/login", "登录user2", body=user_2, expected_status_code=200
 )
 login_user_2.add_post_operation(
-    SetGlobalVariableOperation("access_token", "{{7.response.body.data.accessToken}}")
+    SetGlobalVariableOperation("access_token", "{{7.response.body.accessToken}}")
 )
 t.add_step(login_user_2)  # 7
 
@@ -83,7 +83,7 @@ delete_user_2 = Step(
     "delete",
     "/users/{id}",
     "删除user2",
-    path_params='{ "id": {{7.response.body.data.id}} }',
+    path_params='{ "id": {{7.response.body.id}} }',
 )
 t.add_step(delete_user_2)  # 8
 

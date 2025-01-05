@@ -23,7 +23,7 @@ t.add_step(create_user)  # 0
 # 登录
 login_user = Step("post", "/users/login", "登录", body=user, expected_status_code=200)
 login_user.add_post_operation(
-    SetGlobalVariableOperation("access_token", "{{1.response.body.data.accessToken}}")
+    SetGlobalVariableOperation("access_token", "{{1.response.body.accessToken}}")
 )
 t.add_step(login_user)  # 1
 
@@ -81,7 +81,7 @@ t.add_step(create_order)  # 2
 # 创建refund，product id不可以为空
 refund = """{
     "type": 2,
-    "partner": { "id": {{2.response.body.data.partner.id}} },
+    "partner": { "id": {{2.response.body.partner.id}} },
     "date": "2025-09-29",
     "invoiceItems": [
         {
@@ -98,14 +98,14 @@ refund = """{
             "amount": 160,
             "remark": "remark#1",
             "delivered": false,
-            "orderItem":{ "id": {{2.response.body.data.invoiceItems.0.id}} }
+            "orderItem":{ "id": {{2.response.body.invoiceItems.0.id}} }
         }
     ],
     "amount": 1000,
     "prepayment": 50,
     "payment": 200,
     "delivered": 0,
-    "order": { "id": {{2.response.body.data.id}} }
+    "order": { "id": {{2.response.body.id}} }
 }"""
 create_refund_1 = Step(
     "post",
@@ -119,11 +119,11 @@ t.add_step(create_refund_1)  # 3
 # 创建refund，orderItem不可以为空
 refund = """{
     "type": 2,
-    "partner": { "id": {{2.response.body.data.partner.id}} },
+    "partner": { "id": {{2.response.body.partner.id}} },
     "date": "2025-09-29",
     "invoiceItems": [
         {
-            "product": { "id": {{2.response.body.data.invoiceItems.0.product.id}} },
+            "product": { "id": {{2.response.body.invoiceItems.0.product.id}} },
             "price": 100,
             "quantity": 2,
             "originalAmount": 200,
@@ -137,7 +137,7 @@ refund = """{
     "prepayment": 50,
     "payment": 200,
     "delivered": 0,
-    "order": { "id": {{2.response.body.data.id}} }
+    "order": { "id": {{2.response.body.id}} }
 }"""
 create_refund_2 = Step(
     "post",
@@ -152,13 +152,13 @@ t.add_step(create_refund_2)  # 4
 refund = """{
     "type": 2,
     "partner": {
-        "id": {{2.response.body.data.partner.id}}
+        "id": {{2.response.body.partner.id}}
     },
     "date": "2025-09-29",
     "invoiceItems": [
         {
             "product": {
-              "id": {{2.response.body.data.invoiceItems.0.product.id}}
+              "id": {{2.response.body.invoiceItems.0.product.id}}
             },
             "price": 100,
             "quantity": 2,
@@ -176,7 +176,7 @@ refund = """{
     "prepayment": 50,
     "payment": 200,
     "delivered": 0,
-    "order": { "id": {{2.response.body.data.id}} }
+    "order": { "id": {{2.response.body.id}} }
 }"""
 create_refund_3 = Step(
     "post",
@@ -191,13 +191,13 @@ t.add_step(create_refund_3)  # 5
 refund = """{
     "type": 2,
     "partner": {
-        "id": {{2.response.body.data.partner.id}}
+        "id": {{2.response.body.partner.id}}
     },
     "date": "2025-09-29",
     "invoiceItems": [
         {
             "product": {
-              "id": {{2.response.body.data.invoiceItems.0.product.id}}
+              "id": {{2.response.body.invoiceItems.0.product.id}}
             },
             "price": 100,
             "quantity": 2,
@@ -215,7 +215,7 @@ refund = """{
     "prepayment": 50,
     "payment": 200,
     "delivered": 0,
-    "order": { "id": {{2.response.body.data.id}} }
+    "order": { "id": {{2.response.body.id}} }
 }"""
 create_refund_4 = Step(
     "post",
@@ -230,13 +230,13 @@ t.add_step(create_refund_4)  # 6
 refund = """{
     "type": 2,
     "partner": {
-        "id": {{2.response.body.data.partner.id}}
+        "id": {{2.response.body.partner.id}}
     },
     "date": "{{2.request.body.date}}",
     "invoiceItems": [
         {
             "product": {
-              "id": {{2.response.body.data.invoiceItems.0.product.id}}
+              "id": {{2.response.body.invoiceItems.0.product.id}}
             },
             "price": 1000,
             "quantity": 20,
@@ -246,7 +246,7 @@ refund = """{
             "remark": "remark#refund#1",
             "delivered": true,
             "orderItem": {
-                "id": {{2.response.body.data.invoiceItems.0.id}}
+                "id": {{2.response.body.invoiceItems.0.id}}
             }
         }
     ],
@@ -254,28 +254,28 @@ refund = """{
     "prepayment": 432,
     "payment": 34,
     "delivered": 1,
-    "order": { "id": {{2.response.body.data.id}} }
+    "order": { "id": {{2.response.body.id}} }
 }"""
 create_refund_5 = Step("post", "/invoices", "创建refund", body=refund)
 create_refund_5.add_post_operation(
     AssertEqualOperation(
-        "7.response.body.data.invoiceItems.0.product.id",
-        "{{2.response.body.data.invoiceItems.0.product.id}}",
+        "7.response.body.invoiceItems.0.product.id",
+        "{{2.response.body.invoiceItems.0.product.id}}",
     )
 )
 create_refund_5.add_post_operation(
     AssertEqualOperation(
-        "7.response.body.data.invoiceItems.0.orderItem.id",
-        "{{2.response.body.data.invoiceItems.0.id}}",
+        "7.response.body.invoiceItems.0.orderItem.id",
+        "{{2.response.body.invoiceItems.0.id}}",
     )
 )
 create_refund_5.add_post_operation(
     AssertEqualOperation(
-        "7.response.body.data.partner.id", "{{2.response.body.data.partner.id}}"
+        "7.response.body.partner.id", "{{2.response.body.partner.id}}"
     )
 )
 create_refund_5.add_post_operation(
-    AssertEqualOperation("7.response.body.data.order.id", "{{2.response.body.data.id}}")
+    AssertEqualOperation("7.response.body.order.id", "{{2.response.body.id}}")
 )
 t.add_step(create_refund_5)  # 7
 
@@ -284,17 +284,17 @@ query_refund = Step(
     "get",
     "/invoices/{id}",
     "查询单个refund",
-    path_params='{"id": {{7.response.body.data.id}}}',
+    path_params='{"id": {{7.response.body.id}}}',
 )
 query_refund.add_post_operation(
     AssertEqualOperation(
-        "8.response.body.data.number",
+        "8.response.body.number",
         "{{7.request.body.date.substr(0,4)}}{{7.request.body.date.substr(5,7)}}{{7.request.body.date.substr(8,10)}}0001",
     )
 )
 query_refund.add_post_operation(
     AssertEqualOperation(
-        "8.response.body.data.partner.name", "{{2.request.body.partner.name}}"
+        "8.response.body.partner.name", "{{2.request.body.partner.name}}"
     )
 )
 t.add_step(query_refund)  # 8
@@ -304,11 +304,11 @@ query_order = Step(
     "get",
     "/invoices/{id}",
     "查询单个order",
-    path_params='{"id": {{2.response.body.data.id}}}',
+    path_params='{"id": {{2.response.body.id}}}',
 )
 query_order.add_post_operation(
     AssertEqualOperation(
-        "9.response.body.data.number",
+        "9.response.body.number",
         "{{2.request.body.date.substr(0,4)}}{{2.request.body.date.substr(5,7)}}{{2.request.body.date.substr(8,10)}}0001",
     )
 )
@@ -319,7 +319,7 @@ delete_user = Step(
     "delete",
     "/users/{id}",
     "删除user",
-    path_params='{"id": {{1.response.body.data.id}} }',
+    path_params='{"id": {{1.response.body.id}} }',
 )
 t.add_step(delete_user)  # 10
 

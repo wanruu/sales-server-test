@@ -29,7 +29,7 @@ t.add_step(create_user)  # 0
 # 登录
 login_user = Step("post", "/users/login", "登录", body=user, expected_status_code=200)
 login_user.add_post_operation(
-    SetGlobalVariableOperation("access_token", "{{1.response.body.data.accessToken}}")
+    SetGlobalVariableOperation("access_token", "{{1.response.body.accessToken}}")
 )
 t.add_step(login_user)  # 1
 
@@ -105,9 +105,9 @@ order_update = """{
     "date": "2000-05-20",
     "invoiceItems": [
         {
-            "id": {{2.response.body.data.invoiceItems.1.id}},
+            "id": {{2.response.body.invoiceItems.1.id}},
             "product": {
-                "id": {{2.response.body.data.invoiceItems.1.product.id}},
+                "id": {{2.response.body.invoiceItems.1.product.id}},
                 "name": "shouldn't appear"
             },
             "price": 1,
@@ -120,7 +120,7 @@ order_update = """{
             "delivered": false
         },
         {
-            "id": {{2.response.body.data.invoiceItems.2.id}},
+            "id": {{2.response.body.invoiceItems.2.id}},
             "product": {
                 "material": "material#4",
                 "name": "name#4",
@@ -137,7 +137,7 @@ order_update = """{
         },
         {
             "product": {
-                "id": {{2.response.body.data.invoiceItems.0.product.id}}
+                "id": {{2.response.body.invoiceItems.0.product.id}}
             },
             "price": 3,
             "quantity": 3,
@@ -158,7 +158,7 @@ update_order = Step(
     "put",
     "/invoices/{id}",
     "更新order",
-    path_params='{"id": {{2.response.body.data.id}}}',
+    path_params='{"id": {{2.response.body.id}}}',
     body=order_update,
 )
 t.add_step(update_order)  # 3
@@ -168,18 +168,18 @@ get_partner = Step(
     "get",
     "/partners/{id}",
     "查询单个partner",
-    path_params='{"id": {{2.response.body.data.partner.id}}}',
+    path_params='{"id": {{2.response.body.partner.id}}}',
 )
 get_partner.add_post_operation(
-    AssertEqualOperation("4.response.body.data.name", "{{2.request.body.partner.name}}")
+    AssertEqualOperation("4.response.body.name", "{{2.request.body.partner.name}}")
 )
 get_partner.add_post_operation(
     AssertEqualOperation(
-        "4.response.body.data.folder", "{{2.request.body.partner.folder}}"
+        "4.response.body.folder", "{{2.request.body.partner.folder}}"
     )
 )
-get_partner.add_post_operation(AssertEqualOperation("4.response.body.data.address", ""))
-get_partner.add_post_operation(AssertEqualOperation("4.response.body.data.phone", ""))
+get_partner.add_post_operation(AssertEqualOperation("4.response.body.address", ""))
+get_partner.add_post_operation(AssertEqualOperation("4.response.body.phone", ""))
 t.add_step(get_partner)  # 4
 
 # 查询单个order
@@ -187,50 +187,50 @@ get_order = Step(
     "get",
     "/invoices/{id}",
     "查询单个order",
-    path_params='{"id": {{2.response.body.data.id}}}',
+    path_params='{"id": {{2.response.body.id}}}',
 )
 get_order.add_post_operation(
     AssertEqualOperation(
-        "5.response.body.data.partner",
+        "5.response.body.partner",
         """{
             "name": "{{3.request.body.partner.name}}",
             "address": "{{3.request.body.partner.address}}",
             "phone": "", "folder": "",
-            "id": {{5.response.body.data.partner.id}}
+            "id": {{5.response.body.partner.id}}
         }""",
     )
 )
-get_order.add_post_operation(AssertEqualOperation("5.response.body.data.order", None))
+get_order.add_post_operation(AssertEqualOperation("5.response.body.order", None))
 get_order.add_post_operation(
     AssertEqualOperation(
-        "5.response.body.data.number",
+        "5.response.body.number",
         "{{2.request.body.date.substr(0,4)}}{{2.request.body.date.substr(5,7)}}{{2.request.body.date.substr(8,10)}}0001",
     )
 )
 get_order.add_post_operation(
-    AssertEqualOperation("5.response.body.data.amount", "{{3.request.body.amount}}")
+    AssertEqualOperation("5.response.body.amount", "{{3.request.body.amount}}")
 )
 get_order.add_post_operation(
     AssertEqualOperation(
-        "5.response.body.data.prepayment", "{{3.request.body.prepayment}}"
+        "5.response.body.prepayment", "{{3.request.body.prepayment}}"
     )
 )
 get_order.add_post_operation(
-    AssertEqualOperation("5.response.body.data.payment", "{{3.request.body.payment}}")
+    AssertEqualOperation("5.response.body.payment", "{{3.request.body.payment}}")
 )
 get_order.add_post_operation(
     AssertEqualOperation(
-        "5.response.body.data.delivered", "{{3.request.body.delivered}}"
+        "5.response.body.delivered", "{{3.request.body.delivered}}"
     )
 )
 get_order.add_post_operation(
     AssertEqualOperation(
-        "5.response.body.data.invoiceItems.0",
+        "5.response.body.invoiceItems.0",
         """{
-            "id": {{2.response.body.data.invoiceItems.1.id}},
+            "id": {{2.response.body.invoiceItems.1.id}},
             "orderItem": null,
             "product": {
-                "id": {{2.response.body.data.invoiceItems.1.product.id}},
+                "id": {{2.response.body.invoiceItems.1.product.id}},
                 "material": "{{2.request.body.invoiceItems.1.product.material}}",
                 "name": "{{2.request.body.invoiceItems.1.product.name}}",
                 "spec": "{{2.request.body.invoiceItems.1.product.spec}}",
@@ -250,12 +250,12 @@ get_order.add_post_operation(
 )
 get_order.add_post_operation(
     AssertEqualOperation(
-        "5.response.body.data.invoiceItems.1",
+        "5.response.body.invoiceItems.1",
         """{
-            "id": {{2.response.body.data.invoiceItems.2.id}},
+            "id": {{2.response.body.invoiceItems.2.id}},
             "orderItem": null,
             "product": {
-                "id": {{5.response.body.data.invoiceItems.1.product.id}},
+                "id": {{5.response.body.invoiceItems.1.product.id}},
                 "material": "{{3.request.body.invoiceItems.1.product.material}}",
                 "name": "{{3.request.body.invoiceItems.1.product.name}}",
                 "spec": "{{3.request.body.invoiceItems.1.product.spec}}",
@@ -275,12 +275,12 @@ get_order.add_post_operation(
 )
 get_order.add_post_operation(
     AssertEqualOperation(
-        "5.response.body.data.invoiceItems.2",
+        "5.response.body.invoiceItems.2",
         """{
-            "id": {{5.response.body.data.invoiceItems.2.id}},
+            "id": {{5.response.body.invoiceItems.2.id}},
             "orderItem": null,
             "product": {
-                "id": {{2.response.body.data.invoiceItems.0.product.id}},
+                "id": {{2.response.body.invoiceItems.0.product.id}},
                 "material": "{{2.request.body.invoiceItems.0.product.material}}",
                 "name": "{{2.request.body.invoiceItems.0.product.name}}",
                 "spec": "{{2.request.body.invoiceItems.0.product.spec}}",
@@ -333,7 +333,7 @@ delete_user = Step(
     "delete",
     "/users/{id}",
     "删除user",
-    path_params='{"id": {{1.response.body.data.id}}}',
+    path_params='{"id": {{1.response.body.id}}}',
 )
 t.add_step(delete_user)  # 10
 
