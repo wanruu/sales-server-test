@@ -2,32 +2,48 @@ import requests
 import pydash
 from jsonschema import Draft202012Validator
 from lib.utils import get_global_variables, custom_replace
-from typing import Tuple, List
+from typing import Tuple, List, Literal
 import json
 from lib.operation import Operation
 
-swagger_json = requests.get('http://localhost:3000/api-doc-json').json()
 
-DEFAULT_STATUS_CODE_DICT = {
-    'delete': 204,
-    'get': 200,
-    'post': 201,
-    'put': 200,
-    'patch': 200,
+_DEFAULT_STATUS_CODE_DICT = {
+    "delete": 204,
+    "get": 200,
+    "post": 201,
+    "put": 200,
+    "patch": 200,
 }
+_URL_PREFIX = "http://localhost:3000"
+swagger = requests.get(f"{_URL_PREFIX}/api-doc-json").json()
+
+# type
+HttpMethod = Literal["delete", "get", "post", "put", "patch"]
+Log = Tuple[bool, str]
+
 
 class Step:
-    def __init__(self, method:str, path:str, name:str=None, path_params:str='{}', query_params:str='{}', headers:str='{}', body:str='{}', expected_status_code=None):
+    def __init__(
+        self,
+        method: HttpMethod,
+        path: str,
+        name: str = None,
+        path_params: str = "{}",
+        query_params: str = "{}",
+        headers: str = "{}",
+        body: str = "{}",
+        expected_status_code=None,
+    ):
         self.__name = name
         self.__method = method
         self.__path = path
-        self.__url_prefix = 'http://localhost:3000'
         self.__headers_str = headers
         self.__body_str = body
         self.__path_params_str = path_params
         self.__query_params_str = query_params
-        self.__expected_status_code = int(expected_status_code) if expected_status_code is not None else DEFAULT_STATUS_CODE_DICT.get(method)
-
+        if expected_status_code is None:
+            expected_status_code = _DEFAULT_STATUS_CODE_DICT.get(method)
+        self.__expected_status_code = int(expected_status_code)
         self.__pre_operations = []
         self.__post_operations = []
         self.__src_object = self  # for get variable by path
@@ -64,32 +80,40 @@ class Step:
     def method(self):
         return self.__method
 
+    @property
+    def results(self):
+        return self.__results
+
     def add_pre_operation(self, operation: Operation):
         self.__pre_operations.append(operation)
 
     def add_post_operation(self, operation: Operation):
         self.__post_operations.append(operation)
 
-    # run step, return success and 3 lists of messages
-    # also this will set self.__response and self.__request
+    # run step, set self.__response, self.__request, self.__success, self.__results
     def run(self):
-        overall_success = True
-        
+        self.__success = True
+        self.__results = []
+
         # pre operations
         ret, pre_operation_results = self.__run_operations(self.__pre_operations)
-        overall_success = overall_success and ret
+        pre_operation_results = [
+            (ret, f"前置操作: {msg}") for ret, msg in pre_operation_results
+        ]
+        self.__success = self.__success and ret
+        self.__results += pre_operation_results
 
         # send api
         self.__request = self.__prepare_request()
         response = requests.request(
-            method=self.__method, 
+            method=self.__method,
             url=self.__request["url"],
-            params=self.__request["query_params"], 
+            params=self.__request["query_params"],
             headers=self.__request["headers"],
-            json=self.__request["body"]
+            json=self.__request["body"],
         )
         self.__response = {
-            "body": '' if response.text == '' else response.json(),
+            "body": "" if response.text == "" else response.json(),
             "status_code": response.status_code,
             "headers": response.headers,
             "response_time": response.elapsed.total_seconds(),
@@ -97,76 +121,93 @@ class Step:
 
         # check response
         ret, validation_results = self.__validate_response()
-        overall_success = overall_success and ret
+        self.__success = self.__success and ret
+        self.__results += validation_results
 
         # post operations
         ret, post_operation_results = self.__run_operations(self.__post_operations)
-        overall_success = overall_success and ret
-
-        self.__success = overall_success
-        self.__results = pre_operation_results + validation_results + post_operation_results
-        # return overall_success, pre_operation_results, validation_results, post_operation_results
+        post_operation_results = [
+            (ret, f"后置操作: {msg}") for ret, msg in post_operation_results
+        ]
+        self.__success = self.__success and ret
+        self.__results += post_operation_results
 
     # run operations, return success and messages
-    def __run_operations(self, operations: List[Operation]) -> Tuple[bool, List[Tuple[bool, str]]]:
+    def __run_operations(self, operations: List[Operation]) -> Tuple[bool, List[Log]]:
         results = [operation.run(self.__src_object) for operation in operations]
-        ret = not len([0 for success, _ in results if not success]) > 0
-        return ret, results
+        error = len([0 for success, _ in results if not success]) > 0
+        return not error, results
 
     # validate response, return success and messages
-    def __validate_response(self) -> Tuple[bool, List[Tuple[bool, str]]]:
+    def __validate_response(self) -> Tuple[bool, List[Log]]:
         results = []
 
-        if (self.__response is None):
-            results.append((False, '无法获取响应'))
+        # check if response exists
+        if self.__response is None:
+            results.append((False, "无法获取响应"))
 
-        if self.__response["status_code"] != self.__expected_status_code:
-            results.append((False, f"预期状态码: {self.__expected_status_code}, 实际状态码: {self.__response['status_code']}"))
+        # check status code
+        expected = self.__expected_status_code
+        actual = self.__response["status_code"]
+        if actual != expected:
+            msg = f"预期状态码: {expected}, 实际状态码: {actual}"
+            results.append((False, msg))
 
-        try:
-            path = self.__path
-            method = self.__method
-            code = self.__expected_status_code
-            content_type = self.__response["headers"]['Content-Type'].split(';')[0]
-            content = swagger_json["paths"][path][method]['responses'][str(code)]['content'][content_type]
-        except Exception:
-            if self.__response["status_code"] == 204:
-                results.append((True, '返回数据结构与接口定义一致'))
+        # check response body
+        headers = self.__response["headers"]
+        body = self.__response["body"]
+        if "Content-Type" not in headers:
+            if body == "":
+                results.append((True, "返回数据结构与接口定义一致"))
             else:
-                results.append((False, '接口定义中没有找到返回数据的定义'))
-            ret = not len([0 for success, _ in results if not success]) > 0
-            return ret, results
-
-        if 'schema' in content:
-            schema = pydash.merge(content['schema'], {"components": swagger_json["components"]})
-            validator = Draft202012Validator(schema)
+                results.append((False, "返回数据结构与接口定义不一致"))
         else:
-            raise Exception('Not implemented')
-        
-        ret = True
-        for error in sorted(validator.iter_errors(self.__response["body"]), key=str):
-            results.append((False, f'返回数据结构与接口定义不一致{error.json_path}: {error.message}'))
-            ret = False
-        if ret:
-            results.append((True, '返回数据结构与接口定义一致'))
-            
+            try:
+                # construct validator
+                responses = swagger["paths"][self.__path][self.__method]["responses"]
+                code = str(self.__expected_status_code)
+                content_type = headers["Content-Type"].split(";")[0]
+                schema = pydash.merge(
+                    responses[code]["content"][content_type]["schema"],
+                    {"components": swagger["components"]},
+                )
+                validator = Draft202012Validator(schema)
+
+                # start validation
+                errors = sorted(validator.iter_errors(body), key=str)
+                for error in errors:
+                    msg = f"返回数据结构与接口定义不一致{error.json_path}: {error.message}"
+                    results.append((False, msg))
+                if len(errors) == 0:
+                    results.append((True, "返回数据结构与接口定义一致"))
+            except KeyError:
+                results.append((False, "接口定义中没有找到返回数据的定义"))
+            except Exception as e:
+                results.append((False, f"接口定义解析失败: {e}"))
+
         ret = not len([0 for success, _ in results if not success]) > 0
         return ret, results
 
     # prepare request, return request object
     def __prepare_request(self):
         try:
-            path_params = json.loads(custom_replace(self.__path_params_str, self.__src_object))
-            query_params = json.loads(custom_replace(self.__query_params_str, self.__src_object))
+            path_params = json.loads(
+                custom_replace(self.__path_params_str, self.__src_object)
+            )
+            query_params = json.loads(
+                custom_replace(self.__query_params_str, self.__src_object)
+            )
             headers = pydash.merge(
-                { "Authorization" : f"Bearer {get_global_variables('access_token')}" },
-                json.loads(custom_replace(self.__headers_str, self.__src_object))
+                {"Authorization": f"Bearer {get_global_variables('access_token')}"},
+                json.loads(custom_replace(self.__headers_str, self.__src_object)),
             )
             body = json.loads(custom_replace(self.__body_str, self.__src_object))
             path = self.__path
             for key, value in path_params.items():
-                path = path.replace('{' + key + '}', custom_replace(str(value), self.__src_object))
-            url = self.__url_prefix + path
+                path = path.replace(
+                    "{" + key + "}", custom_replace(str(value), self.__src_object)
+                )
+            url = _URL_PREFIX + path
 
             return {
                 "url": url,
@@ -177,56 +218,3 @@ class Step:
             }
         except Exception as e:
             raise Exception(f"请求参数解析失败: {e}")
-
-    def html_body(self):
-        def gen_checklist(ret, msg):
-            svg_name = 'success' if ret else 'failed'
-            return f'<p><img src="../../svgs/{svg_name}.svg" width="20" height="20" /> {msg}</p>'
-
-        return f'''
-            <h2>{self.__name}</h2>
-            {''.join([gen_checklist(ret, msg) for ret, msg in self.__results])}
-
-            <!-- Tab buttons -->
-            <div class="tab">
-                <button class="tab-links" onclick="openTab(event, 'Response')" id="defaultOpen">
-                    Response
-                </button>
-                <button class="tab-links" onclick="openTab(event, 'Request')">
-                    Request
-                </button>
-            </div>
-
-            <!-- Tab content -->
-            <div id="Response" class="tab-content">
-
-                <p>Status Code: {self.__response['status_code']}</p>
-                <p>Response Time: {self.__response['response_time']}s</p>
-                
-                <h3>Body</h3>
-                <pre>{json.dumps(self.__response["body"], indent=4)}</pre>
-
-                <h3>Headers</h3>
-                <table>
-                    {
-                        "".join([f'<tr><td>{key}</td><td>{value}</td></tr>' for key, value in self.__response["headers"].items()])
-                    }
-                </table>
-            </div>
-
-            <div id="Request" class="tab-content">
-                <pre>{self.__method.upper()} {self.__request["url"]}</pre>
-                <h3>Body</h3>
-                <pre>{json.dumps(self.__request["body"], indent=4)}</pre>
-                <h3>Headers</h3>
-                <table>
-                    {
-                        "".join([f'<tr><td>{key}</td><td>{value}</td></tr>' for key, value in self.__request["headers"].items()])
-                    }
-                </table>
-            </div>
-            <br />
-            <script>
-                document.getElementById("defaultOpen").click();
-            </script>
-        '''

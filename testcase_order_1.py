@@ -13,7 +13,12 @@ import json
 # - 创建order时，已存在的product，不可以更改信息。
 #
 
-t = Testcase('创建order，同时创建部分product')
+t = Testcase('创建order，同时创建部分product', '''
+- 创建order时，`invoiceItems.product.material`可以不包含，保存到数据库中会自动转为`""`。
+- 创建order时，`invoiceItems.product.quantity`可以不包含，保存到数据库中会自动转为`0`。
+- 创建order时，`invoiceItems.weight`可以不包含，保存到数据库中会自动转为`null`。
+- 创建order时，`order`可以为`null`或不包含，保存时只会是`null`。【这里测试的是不包含】
+- 创建order时，已存在的product，不可以更改信息。''')
 
 # 创建user
 user = json.dumps({"name": "Hermione", "password": "12345678"})

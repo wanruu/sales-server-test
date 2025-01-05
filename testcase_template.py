@@ -24,3 +24,4 @@ delete_user = Step('delete', '/users/{id}', '删除user', path_params='{ "id": {
 t.add_step(delete_user) #2
 
 t.run()
+

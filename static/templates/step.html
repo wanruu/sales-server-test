@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+
+<head></head>
+
+<body>
+    <h1 id="testcase_title"></h1>
+
+    <div style="justify-content: space-between; display: flex;">
+        <span>
+            <button onclick="window.location.href='./index.html'">Back</button>
+            <button onclick="window.location.href='../../index.html'">Back to Home</button>
+        </span>
+        <span id="prev_next">
+            <button id="prev_button">Previous</button>
+            <button id="next_button">Next</button>
+        </span>
+    </div>
+
+    <h2 id="step_title"></h2>
+
+    <div id="checklist"></div>
+
+    <!-- Tab links -->
+    <div class="tab">
+        <button class="tab-links" onclick="openTab(event, 'Response')" id="defaultOpen">
+            Response
+        </button>
+        <button class="tab-links" onclick="openTab(event, 'Request')">
+            Request
+        </button>
+    </div>
+
+    <!-- Tab content -->
+    <div id="Response" class="tab-content">
+        <p>Status Code: <span id="status_code"></span></p>
+        <p>Response Time: <span id="response_time"></span></p>
+
+        <h3>Body</h3>
+        <pre id="response_body"></pre>
+
+        <h3>Headers</h3>
+        <table id="response_headers"></table>
+    </div>
+
+    <div id="Request" class="tab-content">
+        <pre id="request_method_url"></pre>
+
+        <h3>Body</h3>
+        <pre id="request_body"></pre>
+
+        <h3>Headers</h3>
+        <table id="request_headers"></table>
+    </div>
+    <br />
+
+    <script>
+        document.getElementById("defaultOpen").click();
+    </script>
+</body>
+
+</html>
