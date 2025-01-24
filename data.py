@@ -227,3 +227,15 @@ unaccepted_invoices = [
         "deliveryStatus": 0,
     },
 ]
+
+accepted_inventory_records = [
+    {
+        "type": 0,
+        "quantity": "10",
+        "weight": None,
+        "remark": "remark#1",
+        "status": 0,
+        "completedAt": "2025-01-23T13:50:59Z",
+        "operator": "operator",
+    }
+]
