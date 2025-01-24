@@ -4,11 +4,11 @@ from lib.operation import SetGlobalVariable
 import json
 
 #
-# response body类型测试 2
+# 类型测试 - response
 #
 
-t = Testcase("response body类型测试 2")
-t.description = "Call每一个API，检查返回的response body类型是否正确"
+t = Testcase("类型测试 - response")
+t.description = "检查每个API返回的response body类型是否正确"
 
 
 # --------------------- create ---------------------
