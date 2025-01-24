@@ -112,6 +112,7 @@ class Step:
             headers=self.__request["headers"],
             json=self.__request["body"],
         )
+        self.__request["url"] = response.request.url
         self.__response = {
             "body": "" if response.text == "" else response.json(),
             "status_code": response.status_code,

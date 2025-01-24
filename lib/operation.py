@@ -9,7 +9,7 @@ class Operation(ABC):
         pass
 
 
-class AssertEqualOperation(Operation):
+class AssertEqual(Operation):
     def __init__(self, path: str, value_str: str):
         self.path = path
         self.value_str = str(value_str)
@@ -36,7 +36,7 @@ class AssertEqualOperation(Operation):
             return False, e
 
 
-class SetGlobalVariableOperation(Operation):
+class SetGlobalVariable(Operation):
     def __init__(self, variable_name: str, value_str: str):
         self.variable_name = variable_name
         self.value_str = value_str

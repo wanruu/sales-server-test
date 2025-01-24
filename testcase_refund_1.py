@@ -1,6 +1,6 @@
 from lib.step import Step
 from lib.testcase import Testcase
-from lib.operation import SetGlobalVariableOperation, AssertEqualOperation
+from lib.operation import SetGlobalVariable, AssertEqual
 import json
 
 #
@@ -23,7 +23,7 @@ t.add_step(create_user)  # 0
 # 登录
 login_user = Step("post", "/users/login", "登录", body=user, expected_status_code=200)
 login_user.add_post_operation(
-    SetGlobalVariableOperation("access_token", "{{1.response.body.accessToken}}")
+    SetGlobalVariable("access_token", "{{1.response.body.accessToken}}")
 )
 t.add_step(login_user)  # 1
 
@@ -258,24 +258,22 @@ refund = """{
 }"""
 create_refund_5 = Step("post", "/invoices", "创建refund", body=refund)
 create_refund_5.add_post_operation(
-    AssertEqualOperation(
+    AssertEqual(
         "7.response.body.invoiceItems.0.product.id",
         "{{2.response.body.invoiceItems.0.product.id}}",
     )
 )
 create_refund_5.add_post_operation(
-    AssertEqualOperation(
+    AssertEqual(
         "7.response.body.invoiceItems.0.orderItem.id",
         "{{2.response.body.invoiceItems.0.id}}",
     )
 )
 create_refund_5.add_post_operation(
-    AssertEqualOperation(
-        "7.response.body.partner.id", "{{2.response.body.partner.id}}"
-    )
+    AssertEqual("7.response.body.partner.id", "{{2.response.body.partner.id}}")
 )
 create_refund_5.add_post_operation(
-    AssertEqualOperation("7.response.body.order.id", "{{2.response.body.id}}")
+    AssertEqual("7.response.body.order.id", "{{2.response.body.id}}")
 )
 t.add_step(create_refund_5)  # 7
 
@@ -287,15 +285,13 @@ query_refund = Step(
     path_params='{"id": {{7.response.body.id}}}',
 )
 query_refund.add_post_operation(
-    AssertEqualOperation(
+    AssertEqual(
         "8.response.body.number",
         "{{7.request.body.date.substr(0,4)}}{{7.request.body.date.substr(5,7)}}{{7.request.body.date.substr(8,10)}}0001",
     )
 )
 query_refund.add_post_operation(
-    AssertEqualOperation(
-        "8.response.body.partner.name", "{{2.request.body.partner.name}}"
-    )
+    AssertEqual("8.response.body.partner.name", "{{2.request.body.partner.name}}")
 )
 t.add_step(query_refund)  # 8
 
@@ -307,7 +303,7 @@ query_order = Step(
     path_params='{"id": {{2.response.body.id}}}',
 )
 query_order.add_post_operation(
-    AssertEqualOperation(
+    AssertEqual(
         "9.response.body.number",
         "{{2.request.body.date.substr(0,4)}}{{2.request.body.date.substr(5,7)}}{{2.request.body.date.substr(8,10)}}0001",
     )

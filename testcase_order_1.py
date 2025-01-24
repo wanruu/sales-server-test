@@ -1,6 +1,6 @@
 from lib.step import Step
 from lib.testcase import Testcase
-from lib.operation import SetGlobalVariableOperation, AssertEqualOperation
+from lib.operation import SetGlobalVariable, AssertEqual
 import json
 
 #
@@ -28,7 +28,7 @@ t.add_step(create_user)  # 0
 # 登录
 login_user = Step("post", "/users/login", "登录", body=user, expected_status_code=200)
 login_user.add_post_operation(
-    SetGlobalVariableOperation("access_token", "{{1.response.body.accessToken}}")
+    SetGlobalVariable("access_token", "{{1.response.body.accessToken}}")
 )
 t.add_step(login_user)  # 1
 
@@ -122,36 +122,32 @@ get_order = Step(
     path_params='{"id": {{4.response.body.id}}}',
 )
 get_order.add_post_operation(
-    AssertEqualOperation("5.response.body.partner", "{{3.response.body}}")
+    AssertEqual("5.response.body.partner", "{{3.response.body}}")
 )
-get_order.add_post_operation(AssertEqualOperation("5.response.body.order", None))
+get_order.add_post_operation(AssertEqual("5.response.body.order", None))
 get_order.add_post_operation(
-    AssertEqualOperation(
+    AssertEqual(
         "5.response.body.number",
         "{{4.request.body.date.substr(0,4)}}{{4.request.body.date.substr(5,7)}}{{4.request.body.date.substr(8,10)}}0001",
     )
 )
 get_order.add_post_operation(
-    AssertEqualOperation("5.response.body.type", "{{4.request.body.type}}")
+    AssertEqual("5.response.body.type", "{{4.request.body.type}}")
 )
 get_order.add_post_operation(
-    AssertEqualOperation("5.response.body.amount", "{{4.request.body.amount}}")
+    AssertEqual("5.response.body.amount", "{{4.request.body.amount}}")
 )
 get_order.add_post_operation(
-    AssertEqualOperation(
-        "5.response.body.prepayment", "{{4.request.body.prepayment}}"
-    )
+    AssertEqual("5.response.body.prepayment", "{{4.request.body.prepayment}}")
 )
 get_order.add_post_operation(
-    AssertEqualOperation("5.response.body.payment", "{{4.request.body.payment}}")
+    AssertEqual("5.response.body.payment", "{{4.request.body.payment}}")
 )
 get_order.add_post_operation(
-    AssertEqualOperation(
-        "5.response.body.delivered", "{{4.request.body.delivered}}"
-    )
+    AssertEqual("5.response.body.delivered", "{{4.request.body.delivered}}")
 )
 get_order.add_post_operation(
-    AssertEqualOperation(
+    AssertEqual(
         "5.response.body.invoiceItems.0",
         """{ 
             "product": {{2.response.body}},
@@ -169,7 +165,7 @@ get_order.add_post_operation(
     )
 )
 get_order.add_post_operation(
-    AssertEqualOperation(
+    AssertEqual(
         "5.response.body.invoiceItems.1",
         """{ 
             "product": {
@@ -194,7 +190,7 @@ get_order.add_post_operation(
     )
 )
 get_order.add_post_operation(
-    AssertEqualOperation(
+    AssertEqual(
         "5.response.body.invoiceItems.2",
         """{ 
             "product": {
@@ -222,30 +218,22 @@ t.add_step(get_order)  # 5
 
 # 查询所有invoice
 get_all_invoice = Step("get", "/invoices", "查询所有invoice")
-get_all_invoice.add_post_operation(
-    AssertEqualOperation("6.response.body.data.length", 1)
-)
+get_all_invoice.add_post_operation(AssertEqual("6.response.body.data.length", 1))
 t.add_step(get_all_invoice)  # 6
 
 # 查询所有product
 get_all_product = Step("get", "/products", "查询所有product")
-get_all_product.add_post_operation(
-    AssertEqualOperation("7.response.body.data.length", 3)
-)
+get_all_product.add_post_operation(AssertEqual("7.response.body.data.length", 3))
 t.add_step(get_all_product)  # 7
 
 # 查询所有partner
 get_all_partner = Step("get", "/partners", "查询所有partner")
-get_all_partner.add_post_operation(
-    AssertEqualOperation("8.response.body.data.length", 1)
-)
+get_all_partner.add_post_operation(AssertEqual("8.response.body.data.length", 1))
 t.add_step(get_all_partner)  # 8
 
 # 查询所有invoiceItem
 get_all_invoice_item = Step("get", "/invoiceItems", "查询所有invoiceItem")
-get_all_invoice_item.add_post_operation(
-    AssertEqualOperation("9.response.body.data.length", 3)
-)
+get_all_invoice_item.add_post_operation(AssertEqual("9.response.body.data.length", 3))
 t.add_step(get_all_invoice_item)  # 9
 
 # 删除user

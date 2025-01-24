@@ -33,7 +33,7 @@ class Testcase:
     @property
     def description(self):
         return self.__description
-    
+
     @description.setter
     def description(self, value):
         self.__description = value
@@ -47,8 +47,15 @@ class Testcase:
         return self.__steps
 
     def add_step(self, step: Step):
+        names = set(map(lambda s: s.name, self.steps))
         if step.name is None:
             step.name = f"Step {len(self.__steps)+1}"
+        if step.name in names:
+            for i in range(1, 1000):
+                new_name = f"{step.name} ({i})"
+                if new_name not in names:
+                    step.name = new_name
+                    break
         self.__steps.append(step)
 
     def run(self):

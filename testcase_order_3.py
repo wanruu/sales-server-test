@@ -1,6 +1,6 @@
 from lib.step import Step
 from lib.testcase import Testcase
-from lib.operation import SetGlobalVariableOperation, AssertEqualOperation
+from lib.operation import SetGlobalVariable, AssertEqual
 import json
 
 #
@@ -29,7 +29,7 @@ t.add_step(create_user)  # 0
 # 登录
 login_user = Step("post", "/users/login", "登录", body=user, expected_status_code=200)
 login_user.add_post_operation(
-    SetGlobalVariableOperation("access_token", "{{1.response.body.accessToken}}")
+    SetGlobalVariable("access_token", "{{1.response.body.accessToken}}")
 )
 t.add_step(login_user)  # 1
 
@@ -171,15 +171,13 @@ get_partner = Step(
     path_params='{"id": {{2.response.body.partner.id}}}',
 )
 get_partner.add_post_operation(
-    AssertEqualOperation("4.response.body.name", "{{2.request.body.partner.name}}")
+    AssertEqual("4.response.body.name", "{{2.request.body.partner.name}}")
 )
 get_partner.add_post_operation(
-    AssertEqualOperation(
-        "4.response.body.folder", "{{2.request.body.partner.folder}}"
-    )
+    AssertEqual("4.response.body.folder", "{{2.request.body.partner.folder}}")
 )
-get_partner.add_post_operation(AssertEqualOperation("4.response.body.address", ""))
-get_partner.add_post_operation(AssertEqualOperation("4.response.body.phone", ""))
+get_partner.add_post_operation(AssertEqual("4.response.body.address", ""))
+get_partner.add_post_operation(AssertEqual("4.response.body.phone", ""))
 t.add_step(get_partner)  # 4
 
 # 查询单个order
@@ -190,7 +188,7 @@ get_order = Step(
     path_params='{"id": {{2.response.body.id}}}',
 )
 get_order.add_post_operation(
-    AssertEqualOperation(
+    AssertEqual(
         "5.response.body.partner",
         """{
             "name": "{{3.request.body.partner.name}}",
@@ -200,31 +198,27 @@ get_order.add_post_operation(
         }""",
     )
 )
-get_order.add_post_operation(AssertEqualOperation("5.response.body.order", None))
+get_order.add_post_operation(AssertEqual("5.response.body.order", None))
 get_order.add_post_operation(
-    AssertEqualOperation(
+    AssertEqual(
         "5.response.body.number",
         "{{2.request.body.date.substr(0,4)}}{{2.request.body.date.substr(5,7)}}{{2.request.body.date.substr(8,10)}}0001",
     )
 )
 get_order.add_post_operation(
-    AssertEqualOperation("5.response.body.amount", "{{3.request.body.amount}}")
+    AssertEqual("5.response.body.amount", "{{3.request.body.amount}}")
 )
 get_order.add_post_operation(
-    AssertEqualOperation(
-        "5.response.body.prepayment", "{{3.request.body.prepayment}}"
-    )
+    AssertEqual("5.response.body.prepayment", "{{3.request.body.prepayment}}")
 )
 get_order.add_post_operation(
-    AssertEqualOperation("5.response.body.payment", "{{3.request.body.payment}}")
+    AssertEqual("5.response.body.payment", "{{3.request.body.payment}}")
 )
 get_order.add_post_operation(
-    AssertEqualOperation(
-        "5.response.body.delivered", "{{3.request.body.delivered}}"
-    )
+    AssertEqual("5.response.body.delivered", "{{3.request.body.delivered}}")
 )
 get_order.add_post_operation(
-    AssertEqualOperation(
+    AssertEqual(
         "5.response.body.invoiceItems.0",
         """{
             "id": {{2.response.body.invoiceItems.1.id}},
@@ -249,7 +243,7 @@ get_order.add_post_operation(
     )
 )
 get_order.add_post_operation(
-    AssertEqualOperation(
+    AssertEqual(
         "5.response.body.invoiceItems.1",
         """{
             "id": {{2.response.body.invoiceItems.2.id}},
@@ -274,7 +268,7 @@ get_order.add_post_operation(
     )
 )
 get_order.add_post_operation(
-    AssertEqualOperation(
+    AssertEqual(
         "5.response.body.invoiceItems.2",
         """{
             "id": {{5.response.body.invoiceItems.2.id}},
@@ -302,30 +296,22 @@ t.add_step(get_order)  # 5
 
 # 查询所有invoice
 get_all_invoice = Step("get", "/invoices", "查询所有invoice")
-get_all_invoice.add_post_operation(
-    AssertEqualOperation("6.response.body.data.length", 1)
-)
+get_all_invoice.add_post_operation(AssertEqual("6.response.body.data.length", 1))
 t.add_step(get_all_invoice)  # 6
 
 # 查询所有partner
 get_all_partner = Step("get", "/partners", "查询所有partner")
-get_all_partner.add_post_operation(
-    AssertEqualOperation("7.response.body.data.length", 2)
-)
+get_all_partner.add_post_operation(AssertEqual("7.response.body.data.length", 2))
 t.add_step(get_all_partner)  # 7
 
 # 查询所有product
 get_all_product = Step("get", "/products", "查询所有product")
-get_all_product.add_post_operation(
-    AssertEqualOperation("8.response.body.data.length", 4)
-)
+get_all_product.add_post_operation(AssertEqual("8.response.body.data.length", 4))
 t.add_step(get_all_product)  # 8
 
 # 查询所有invoiceItem
 get_all_invoice_item = Step("get", "/invoiceItems", "查询所有invoiceItem")
-get_all_invoice_item.add_post_operation(
-    AssertEqualOperation("9.response.body.data.length", 3)
-)
+get_all_invoice_item.add_post_operation(AssertEqual("9.response.body.data.length", 3))
 t.add_step(get_all_invoice_item)  # 9
 
 # 删除user

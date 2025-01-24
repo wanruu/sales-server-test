@@ -83,7 +83,7 @@ class Recent:
             json.dump(self.__data, f)
 
     def __clean_old_testcases(self):
-        if (os.path.exists(_TESTCASES_DIR_PATH)):
+        if os.path.exists(_TESTCASES_DIR_PATH):
             whitelist_dirnames = [t["dirname"] for t in self.__data]
             existing_dirnames = [
                 os.path.basename(dirname)

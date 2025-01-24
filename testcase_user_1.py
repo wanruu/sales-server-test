@@ -1,6 +1,6 @@
 from lib.step import Step
 from lib.testcase import Testcase
-from lib.operation import SetGlobalVariableOperation, AssertEqualOperation
+from lib.operation import SetGlobalVariable, AssertEqual
 import json
 
 #
@@ -18,7 +18,7 @@ t.add_step(create_user)  # 0
 # 登录
 login_user = Step("post", "/users/login", "登录", body=user, expected_status_code=200)
 login_user.add_post_operation(
-    SetGlobalVariableOperation("access_token", "{{1.response.body.accessToken}}")
+    SetGlobalVariable("access_token", "{{1.response.body.accessToken}}")
 )
 t.add_step(login_user)  # 1
 
@@ -30,7 +30,7 @@ find_user = Step(
     path_params='{ "id": {{1.response.body.id}} }',
 )
 find_user.add_post_operation(
-    AssertEqualOperation("2.response.body.name", "{{0.request.body.name}}")
+    AssertEqual("2.response.body.name", "{{0.request.body.name}}")
 )
 t.add_step(find_user)  # 2
 
@@ -44,7 +44,7 @@ modify_user = Step(
     body=new_user,
 )
 modify_user.add_post_operation(
-    AssertEqualOperation("3.response.body.name", "{{3.request.body.name}}")
+    AssertEqual("3.response.body.name", "{{3.request.body.name}}")
 )
 t.add_step(modify_user)  # 3
 
@@ -56,7 +56,7 @@ find_user = Step(
     path_params='{ "id": {{1.response.body.id}} }',
 )
 find_user.add_post_operation(
-    AssertEqualOperation("4.response.body.name", "{{3.request.body.name}}")
+    AssertEqual("4.response.body.name", "{{3.request.body.name}}")
 )
 t.add_step(find_user)  # 4
 

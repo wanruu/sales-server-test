@@ -1,6 +1,6 @@
 from lib.step import Step
 from lib.testcase import Testcase
-from lib.operation import SetGlobalVariableOperation
+from lib.operation import SetGlobalVariable
 import json
 
 #
@@ -34,7 +34,7 @@ login_user_1 = Step(
     "post", "/users/login", "登录user1", body=user_1, expected_status_code=200
 )
 login_user_1.add_post_operation(
-    SetGlobalVariableOperation("access_token", "{{3.response.body.accessToken}}")
+    SetGlobalVariable("access_token", "{{3.response.body.accessToken}}")
 )
 t.add_step(login_user_1)  # 3
 
@@ -64,7 +64,7 @@ login_user_2 = Step(
     "post", "/users/login", "登录user2", body=user_2, expected_status_code=200
 )
 login_user_2.add_post_operation(
-    SetGlobalVariableOperation("access_token", "{{6.response.body.accessToken}}")
+    SetGlobalVariable("access_token", "{{6.response.body.accessToken}}")
 )
 t.add_step(login_user_2)  # 6
 
